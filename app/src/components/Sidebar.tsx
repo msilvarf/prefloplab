@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import {
-  ChevronRight, ChevronDown, Plus, MoreVertical,
+  ChevronRight, Plus, MoreVertical,
   Gamepad2, Users, Coins, Grid3X3, Pencil, Trash2,
-  ChevronUp, ChevronsUpDown, FolderOpen, PanelLeftClose, PanelLeftOpen
+  FolderOpen, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react'
 import type { LibraryNode, LibraryNodeType } from '@/types/library'
 import { getAllowedChildType, getAddChildLabel, getNodePlaceholder, getNodeTypeLabel } from '@/types/library'
@@ -16,13 +16,16 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 interface SidebarProps {
   library: UseLibraryReturn
   onSelectChart: (node: LibraryNode) => void
+  isCollapsed?: boolean
+  onToggleCollapse?: (collapsed: boolean) => void
 }
 
 /**
  * Get the icon for each node type
  */
 function NodeIcon({ type, className }: { type: LibraryNodeType; className?: string }) {
-  const iconClass = cn('w-4 h-4', className)
+  // Slightly larger base size for better visibility
+  const iconClass = cn('w-5 h-5', className)
   switch (type) {
     case 'format':
       return <Gamepad2 className={iconClass} />
@@ -67,9 +70,21 @@ function getNodeBgGradient(type: LibraryNodeType): string {
   }
 }
 
-export function Sidebar({ library, onSelectChart }: SidebarProps) {
-  // Collapsed state - Default TRUE as requested
-  const [isCollapsed, setIsCollapsed] = useState(true)
+export function Sidebar({ library, onSelectChart, isCollapsed: controlledCollapsed, onToggleCollapse }: SidebarProps) {
+  // Internal state fallback if not controlled
+  const [internalCollapsed, setInternalCollapsed] = useState(false)
+
+  // Use controlled prop if available, otherwise internal state
+  const isCollapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed
+
+  const handleToggle = () => {
+    const newState = !isCollapsed
+    if (onToggleCollapse) {
+      onToggleCollapse(newState)
+    } else {
+      setInternalCollapsed(newState)
+    }
+  }
 
   // Dialog state
   const [dialogMode, setDialogMode] = useState<'add' | 'rename' | null>(null)
@@ -168,7 +183,7 @@ export function Sidebar({ library, onSelectChart }: SidebarProps) {
 
     return (
       <div key={node.id} className="animate-fade-in relative">
-        <TooltipProvider delayDuration={500}>
+        <TooltipProvider delayDuration={0}>
           <Tooltip>
             <TooltipTrigger asChild>
               <div
@@ -177,12 +192,13 @@ export function Sidebar({ library, onSelectChart }: SidebarProps) {
                   isSelected
                     ? `bg-gradient-to-r ${getNodeBgGradient(node.type)} border-l-2 border-${node.type === 'format' ? 'violet' : node.type === 'scenario' ? 'blue' : node.type === 'stack' ? 'amber' : 'emerald'}-400`
                     : 'hover:bg-white/5',
-                  isCollapsed && 'justify-center mx-1 px-1'
+                  // Collapsed Styling: Center, remove side padding, add vertical spacing
+                  isCollapsed && 'justify-center mx-1 px-1 py-3 mb-1'
                 )}
                 style={{ marginLeft: isCollapsed ? 0 : `${paddingLeft}px` }}
                 onClick={() => {
                   if (isCollapsed) {
-                    setIsCollapsed(false)
+                    handleToggle() // Expand on interaction
                     library.selectNode(node.id)
                     if (isChart) onSelectChart(node)
                   } else {
@@ -209,10 +225,11 @@ export function Sidebar({ library, onSelectChart }: SidebarProps) {
                   </div>
                 )}
 
-                {/* Node icon */}
+                {/* Node icon - Larger wrapper when collapsed */}
                 <div className={cn(
-                  "w-6 h-6 rounded-md flex items-center justify-center shrink-0",
-                  isSelected ? "bg-white/10" : "bg-transparent"
+                  "rounded-md flex items-center justify-center shrink-0 transition-all",
+                  isSelected ? "bg-white/10" : "bg-transparent",
+                  isCollapsed ? "w-10 h-10 bg-white/5 border border-white/5 shadow-sm" : "w-6 h-6"
                 )}>
                   <NodeIcon type={node.type} className={getNodeColor(node.type)} />
                 </div>
@@ -234,7 +251,7 @@ export function Sidebar({ library, onSelectChart }: SidebarProps) {
                   </span>
                 )}
 
-                {/* Context menu button - Only show if expanded or handle differently */}
+                {/* Context menu button - Only show if expanded */}
                 {!isCollapsed && (
                   <div className="relative">
                     <button
@@ -253,6 +270,7 @@ export function Sidebar({ library, onSelectChart }: SidebarProps) {
                         className="absolute right-0 top-full mt-1 glass-strong rounded-xl shadow-xl py-2 z-50 w-48 animate-scale-in"
                         style={{ left: isCollapsed ? '100%' : 'auto', top: isCollapsed ? '0' : 'auto' }}
                       >
+                        {/* Context Menu Items */}
                         {childType && addLabel && (
                           <button
                             onClick={() => openAddDialog(childType, node.id)}
@@ -276,7 +294,7 @@ export function Sidebar({ library, onSelectChart }: SidebarProps) {
               </div>
             </TooltipTrigger>
             {isCollapsed && <TooltipContent side="right">
-              <p>{node.title}</p>
+              <p className="font-semibold">{node.title}</p>
               <p className="text-[10px] text-muted-foreground">{getNodeTypeLabel(node.type)}</p>
             </TooltipContent>}
           </Tooltip>
@@ -307,12 +325,19 @@ export function Sidebar({ library, onSelectChart }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "bg-gradient-to-b from-sidebar to-background border-r border-border/50 flex flex-col shrink-0 transition-all duration-300 ease-in-out relative z-20",
-        isCollapsed ? "w-20" : "w-72"
+        "bg-gradient-to-b from-sidebar to-background border-border/50 flex flex-col shrink-0 transition-all duration-300 ease-in-out relative z-20",
+        // Desktop: border-r, height auto (full). Mobile: border-b, controlled height
+        "lg:border-r lg:border-b-0 border-b",
+        isCollapsed
+          ? "lg:w-20 w-full h-16 lg:h-auto"
+          : "lg:w-72 w-full h-[400px] lg:h-auto"
       )}
     >
       {/* Header */}
-      <div className="p-4 border-b border-border/50 h-16 flex items-center justify-between">
+      <div className={cn(
+        "border-b border-border/50 h-16 flex items-center",
+        isCollapsed ? "justify-center p-0" : "justify-between p-4"
+      )}>
         {!isCollapsed && (
           <div className="flex items-center gap-2 animate-fade-in">
             <FolderOpen className="w-4 h-4 text-violet-400" />
@@ -320,7 +345,7 @@ export function Sidebar({ library, onSelectChart }: SidebarProps) {
           </div>
         )}
 
-        <div className={cn("flex items-center gap-1", isCollapsed && "w-full justify-center")}>
+        <div className={cn("flex items-center gap-1", isCollapsed && "w-full justify-center flex-col py-2 gap-2")}>
           {!isCollapsed && (
             <button
               onClick={() => openAddDialog('format', null)}
@@ -332,12 +357,26 @@ export function Sidebar({ library, onSelectChart }: SidebarProps) {
           )}
 
           <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground hover:text-foreground transition-all duration-200"
+            onClick={handleToggle}
+            className={cn(
+              "p-2 hover:bg-white/5 rounded-lg text-muted-foreground hover:text-foreground transition-all duration-200",
+              isCollapsed && "hover:bg-white/10"
+            )}
             title={isCollapsed ? "Expandir" : "Recolher"}
           >
-            {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+            {isCollapsed ? <PanelLeftOpen className="w-5 h-5 text-violet-400" /> : <PanelLeftClose className="w-4 h-4" />}
           </button>
+
+          {/* Add button for collapsed state */}
+          {isCollapsed && (
+            <button
+              onClick={() => openAddDialog('format', null)}
+              className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground hover:text-green-400 transition-all duration-200 mt-1"
+              title="Adicionar Formato"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 

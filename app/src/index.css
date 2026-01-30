@@ -205,6 +205,50 @@
   background-clip: text;
 }
 
+/* Responsive Container & Layout Utilities */
+.page-container {
+  width: 100%;
+  max-width: 1400px;
+  /* 1200px-1400px as requested */
+  margin: 0 auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .page-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 1440px) {
+  .page-container {
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+}
+
+.responsive-gap {
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .responsive-gap {
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-gap {
+    gap: 2rem;
+  }
+}
+
+.prose-limit {
+  max-width: 70ch;
+}
+
 /* Card hover effect */
 .card-hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

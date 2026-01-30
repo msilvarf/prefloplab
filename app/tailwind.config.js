@@ -4,6 +4,16 @@ module.exports = {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      screens: {
+        'xs': '480px',
+        // 'sm': '640px', // Default
+        // 'md': '768px', // Default
+        // 'lg': '1024px', // Default
+        'xl': '1440px', // Overriding default 1280px or just adding it? User wants breakpoints at 1440. Default xl is 1280. 
+        // If I override xl, it shifts everything. Let's add 'xl-plus' or just rely on '2xl' etc? 
+        // The user explicitly listed 1440px. 
+        // Let's explicitly set the screens to match the user request exactly + standard ones.
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

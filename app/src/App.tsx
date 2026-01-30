@@ -11,8 +11,21 @@ import { useRanges } from './hooks/useRanges'
 import type { Range, LibraryNode, Folder } from './types'
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'biblioteca' | 'editor' | 'visualizador' | 'treinador'>('biblioteca')
+  const [activeTab, setActiveTabRaw] = useState<'biblioteca' | 'editor' | 'visualizador' | 'treinador'>('biblioteca')
   const [selectedRange, setSelectedRange] = useState<Range | null>(null)
+
+  // Sidebar collapsed state - controlled by App
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+
+  const setActiveTab = (tab: 'biblioteca' | 'editor' | 'visualizador' | 'treinador') => {
+    setActiveTabRaw(tab)
+    // Auto-collapse sidebar in 'treinador', expand in others
+    if (tab === 'treinador') {
+      setIsSidebarCollapsed(true)
+    } else {
+      setIsSidebarCollapsed(false)
+    }
+  }
 
   // Use the library hook at App level to share state
   const library = useLibrary()
@@ -111,43 +124,53 @@ function App() {
   }, [library.nodes, rangesManager.ranges])
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-background overflow-hidden relative">
       <Header activeTab={activeTab} onTabChange={setActiveTab} />
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {activeTab !== 'visualizador' && (
           <Sidebar
             library={library}
             onSelectChart={handleSelectChart}
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={setIsSidebarCollapsed}
           />
         )}
-        <main className="flex-1 overflow-auto">
-          {activeTab === 'biblioteca' && (
-            <BibliotecaView
-              selectedNode={library.selectedNode}
-              onOpenInEditor={handleOpenInEditor}
-            />
-          )}
-          {activeTab === 'editor' && (
-            <EditorView
-              range={selectedRange}
-              onSave={(range) => {
-                if (range) {
-                  rangesManager.saveRange(range)
-                  setSelectedRange(range)
-                }
-              }}
-            />
-          )}
-          {activeTab === 'visualizador' && (
-            <VisualizadorView
-              range={selectedRange}
-              library={library}
-              getRange={getOrCreateRange}
-            />
-          )}
-          {activeTab === 'treinador' && (
-            <TreinadorView folders={trainerFolders} />
-          )}
+        <main className="flex-1 overflow-auto bg-black/5 w-full">
+          <div className="page-container h-full flex flex-col py-6">
+            {activeTab === 'biblioteca' && (
+              <BibliotecaView
+                selectedNode={library.selectedNode}
+                onOpenInEditor={handleOpenInEditor}
+              />
+            )}
+            {activeTab === 'editor' && (
+              <div className="flex-1 overflow-hidden bg-card rounded-3xl border border-border/50 shadow-sm">
+                <EditorView
+                  range={selectedRange}
+                  onSave={(range) => {
+                    if (range) {
+                      rangesManager.saveRange(range)
+                      setSelectedRange(range)
+                    }
+                  }}
+                />
+              </div>
+            )}
+            {activeTab === 'visualizador' && (
+              <div className="flex-1 overflow-hidden bg-card rounded-3xl border border-border/50 shadow-sm">
+                <VisualizadorView
+                  range={selectedRange}
+                  library={library}
+                  getRange={getOrCreateRange}
+                />
+              </div>
+            )}
+            {activeTab === 'treinador' && (
+              <div className="flex-1 overflow-hidden bg-card rounded-3xl border border-border/50 shadow-sm">
+                <TreinadorView folders={trainerFolders} />
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </div>

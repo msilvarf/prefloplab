@@ -54,7 +54,7 @@ export function BibliotecaView({ selectedNode, onOpenInEditor }: BibliotecaViewP
           <h2 className="text-3xl font-bold mb-4">
             <span className="gradient-text">Bem-vindo à Biblioteca</span>
           </h2>
-          <p className="text-muted-foreground mb-8 text-lg">
+          <p className="text-muted-foreground mb-8 text-lg prose-limit">
             Organize seus ranges de poker usando a hierarquia:
           </p>
 
