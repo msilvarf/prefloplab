@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import './App.css'
 import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
@@ -6,124 +6,141 @@ import { BibliotecaView } from './views/BibliotecaView'
 import { EditorView } from './views/EditorView'
 import { VisualizadorView } from './views/VisualizadorView'
 import { TreinadorView } from './views/TreinadorView'
-import type { Folder, Range } from './types'
-
-const initialFolders: Folder[] = [
-  {
-    id: '1',
-    name: 'Holdem Cash by FreeBetRange',
-    isOpen: true,
-    ranges: []
-  },
-  {
-    id: '2',
-    name: 'spin',
-    isOpen: false,
-    ranges: []
-  }
-]
+import { useLibrary } from './hooks/useLibrary'
+import { useRanges } from './hooks/useRanges'
+import type { Range, LibraryNode, Folder } from './types'
 
 function App() {
   const [activeTab, setActiveTab] = useState<'biblioteca' | 'editor' | 'visualizador' | 'treinador'>('biblioteca')
-  const [folders, setFolders] = useState<Folder[]>(initialFolders)
   const [selectedRange, setSelectedRange] = useState<Range | null>(null)
 
-  const handleAddFolder = (name: string, parentId?: string) => {
-    const newFolder: Folder = {
-      id: Date.now().toString(),
-      name,
-      isOpen: false,
-      ranges: []
+  // Use the library hook at App level to share state
+  const library = useLibrary()
+  const rangesManager = useRanges()
+
+  /**
+   * Helper to get or create a default range
+   */
+  const getOrCreateRange = (node: LibraryNode): Range => {
+    if (node.rangeId) {
+      const existing = rangesManager.getRange(node.rangeId)
+      if (existing) return existing
+
+      // Return default template if not found
+      return {
+        id: node.rangeId,
+        name: node.title,
+        type: 'classico',
+        hands: {},
+        actions: [
+          { id: '1', name: 'call', color: '#d4a017' },
+          { id: '2', name: 'raise', color: '#4a9b8e' }
+        ]
+      }
     }
-    
-    if (parentId) {
-      setFolders(prev => addFolderToParent(prev, parentId, newFolder))
-    } else {
-      setFolders(prev => [...prev, newFolder])
+    // Fallback should typically not happen for chart nodes
+    return {
+      id: 'temp',
+      name: node.title,
+      type: 'classico',
+      hands: {},
+      actions: []
     }
   }
 
-  const addFolderToParent = (folders: Folder[], parentId: string, newFolder: Folder): Folder[] => {
-    return folders.map(folder => {
-      if (folder.id === parentId) {
-        return {
-          ...folder,
-          subfolders: [...(folder.subfolders || []), newFolder]
+  /**
+   * Handle chart selection from sidebar
+   */
+  const handleSelectChart = (node: LibraryNode) => {
+    // If it's a chart, also prepare the Range object
+    if (node.type === 'chart') {
+      const range = getOrCreateRange(node)
+      setSelectedRange(range)
+    }
+  }
+
+  /**
+   * Open chart in editor
+   */
+  const handleOpenInEditor = (node: LibraryNode) => {
+    if (node.type === 'chart') {
+      const range = getOrCreateRange(node)
+      setSelectedRange(range)
+      setActiveTab('editor')
+    }
+  }
+
+  /**
+   * Generate folders for TreinadorView from Library Structure
+   * We flatten the hierarchy: Each 'Stack' node becomes a folder.
+   */
+  const trainerFolders = useMemo(() => {
+    const folders: Folder[] = []
+
+    const processNode = (node: LibraryNode, path: string[]) => {
+      if (node.type === 'stack') {
+        // Create a folder for this Stack
+        const folderName = [...path, node.title].join(' / ')
+
+        // Find chart children
+        const chartNodes = node.children?.filter(c => c.type === 'chart') || []
+
+        if (chartNodes.length > 0) {
+          const folderRanges = chartNodes.map(chartNode => getOrCreateRange(chartNode))
+
+          folders.push({
+            id: node.id,
+            name: folderName,
+            isOpen: false,
+            ranges: folderRanges
+          })
         }
-      }
-      if (folder.subfolders) {
-        return {
-          ...folder,
-          subfolders: addFolderToParent(folder.subfolders, parentId, newFolder)
-        }
-      }
-      return folder
-    })
-  }
+      } else if (node.children) {
+        // Continue traversing
+        // Don't include format/scenario names in path if desire cleaner UI, but usually helpful context
+        const newPath = node.type === 'format' || node.type === 'scenario'
+          ? [...path, node.title]
+          : path
 
-  const handleAddRange = (folderId: string, range: Range) => {
-    setFolders(prev => prev.map(folder => {
-      if (folder.id === folderId) {
-        return { ...folder, ranges: [...folder.ranges, range] }
+        node.children.forEach(child => processNode(child, newPath))
       }
-      return folder
-    }))
-    setSelectedRange(range)
-    setActiveTab('editor')
-  }
+    }
 
-  const handleSelectRange = (range: Range) => {
-    setSelectedRange(range)
-    setActiveTab('editor')
-  }
-
-  const toggleFolder = (folderId: string) => {
-    setFolders(prev => prev.map(folder => {
-      if (folder.id === folderId) {
-        return { ...folder, isOpen: !folder.isOpen }
-      }
-      return folder
-    }))
-  }
+    library.nodes.forEach(node => processNode(node, []))
+    return folders
+  }, [library.nodes, rangesManager.ranges])
 
   return (
     <div className="h-screen flex flex-col bg-background">
       <Header activeTab={activeTab} onTabChange={setActiveTab} />
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar 
-          folders={folders}
-          onAddFolder={handleAddFolder}
-          onAddRange={handleAddRange}
-          onSelectRange={handleSelectRange}
-          onToggleFolder={toggleFolder}
+        <Sidebar
+          library={library}
+          onSelectChart={handleSelectChart}
         />
         <main className="flex-1 overflow-auto">
           {activeTab === 'biblioteca' && (
-            <BibliotecaView 
-              folders={folders}
-              onSelectRange={handleSelectRange}
-              onAddFolder={(name) => handleAddFolder(name)}
-              onAddRange={handleAddRange}
+            <BibliotecaView
+              selectedNode={library.selectedNode}
+              onOpenInEditor={handleOpenInEditor}
             />
           )}
           {activeTab === 'editor' && (
-            <EditorView 
+            <EditorView
               range={selectedRange}
               onSave={(range) => {
                 if (range) {
-                  setFolders(prev => prev.map(folder => ({
-                    ...folder,
-                    ranges: folder.ranges.map(r => r.id === range.id ? range : r)
-                  })))
+                  rangesManager.saveRange(range)
+                  setSelectedRange(range)
                 }
               }}
             />
           )}
           {activeTab === 'visualizador' && (
-            <VisualizadorView folders={folders} />
+            <VisualizadorView range={selectedRange} />
           )}
           {activeTab === 'treinador' && (
-            <TreinadorView folders={folders} />
+            <TreinadorView folders={trainerFolders} />
           )}
         </main>
       </div>

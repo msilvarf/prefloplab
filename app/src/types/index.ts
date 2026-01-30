@@ -6,6 +6,9 @@ export interface Range {
   actions: Action[]
 }
 
+// Re-export library types
+export * from './library'
+
 export interface Action {
   id: string
   name: string
