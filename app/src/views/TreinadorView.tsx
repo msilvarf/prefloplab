@@ -144,8 +144,7 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
     const delay = isCorrect ? 1000 : 2500
 
     setTimeout(() => {
-      // Check if we are still processing the same user action (basic debounce check not needed here due to simple flow)
-      // We only proceed if we're not at the very end
+      // Check if we are still processing the same user action
       if (currentHandIndex < activeScenarios.length - 1) {
         // Move to next hand
         const nextIndex = currentHandIndex + 1
@@ -305,13 +304,6 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
 
         {/* Hand display */}
         <div className="text-center mb-8">
-          {/* Primary Hand Text */}
-          <div className="text-6xl font-bold mb-4">
-            <span className={getCardColor(currentHand.hand)}>
-              {formatHand(currentHand.hand)}
-            </span>
-          </div>
-
           {/* Situation Context */}
           <div className="text-2xl font-bold mb-1">
             {currentHand.stackSize}
@@ -325,14 +317,14 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
         <div className="relative w-96 h-56 border-4 border-muted-foreground/30 rounded-[50%] mb-8 flex items-center justify-center">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
             <div className="flex items-center gap-2">
-              <div className={`w-10 h-14 ${currentCardColors[0]} rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg`}>
+              <div className={`w-16 h-24 ${currentCardColors[0]} rounded-xl flex items-center justify-center text-white font-bold text-3xl shadow-lg border-2 border-white/10`}>
                 {currentHand.hand.charAt(0)}
               </div>
-              <div className={`w-10 h-14 ${currentCardColors[1]} rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg`}>
+              <div className={`w-16 h-24 ${currentCardColors[1]} rounded-xl flex items-center justify-center text-white font-bold text-3xl shadow-lg border-2 border-white/10`}>
                 {currentHand.hand.charAt(1)}
               </div>
             </div>
-            <div className="mt-2 px-3 py-1 bg-primary text-white text-xs rounded-full text-center">
+            <div className="mt-4 px-4 py-1.5 bg-primary text-white text-sm rounded-full text-center font-medium shadow-sm">
               Hero
             </div>
           </div>
@@ -346,10 +338,10 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
               onClick={() => handleAnswer(action.name)}
               disabled={showResult}
               className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${showResult && action.name === currentHand.correctAction
-                  ? 'ring-2 ring-green-500'
-                  : showResult && lastAnswer?.action === action.name && !lastAnswer.correct
-                    ? 'ring-2 ring-red-500'
-                    : 'hover:opacity-80'
+                ? 'ring-2 ring-green-500'
+                : showResult && lastAnswer?.action === action.name && !lastAnswer.correct
+                  ? 'ring-2 ring-red-500'
+                  : 'hover:opacity-80'
                 }`}
               style={{ backgroundColor: action.color }}
             >
@@ -378,7 +370,7 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
       </div>
 
       {/* Range preview */}
-      <div className="w-80 border-l border-border p-4 overflow-auto">
+      <div className="w-96 border-l border-border p-4 overflow-auto">
         <h4 className="text-sm font-medium mb-4">Range de referência</h4>
 
         {/* Only show if requested. Using CSS opacity/pointer-events to keep layout or conditional render */}

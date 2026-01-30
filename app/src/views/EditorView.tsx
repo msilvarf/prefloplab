@@ -223,22 +223,9 @@ export function EditorView({ range, onSave }: EditorViewProps) {
         {/* Hand grid */}
         <div className="flex-1 p-6 overflow-auto">
           <div className="w-full max-w-[calc(100vh-10rem)] mx-auto">
-            {/* Column headers */}
-            <div className="flex w-full">
-              <div className="w-8 shrink-0" />
-              {['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'].map(rank => (
-                <div key={rank} className="flex-1 aspect-square flex items-center justify-center text-xs text-muted-foreground">
-                  {rank}
-                </div>
-              ))}
-            </div>
-
             {/* Grid */}
             {POKER_HANDS.map((row, rowIndex) => (
               <div key={rowIndex} className="flex w-full">
-                <div className="w-8 shrink-0 flex items-center justify-center text-xs text-muted-foreground">
-                  {['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'][rowIndex]}
-                </div>
                 {row.map(hand => (
                   <button
                     key={hand}

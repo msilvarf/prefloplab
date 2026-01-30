@@ -137,7 +137,11 @@ function App() {
             />
           )}
           {activeTab === 'visualizador' && (
-            <VisualizadorView range={selectedRange} />
+            <VisualizadorView
+              range={selectedRange}
+              library={library}
+              getRange={getOrCreateRange}
+            />
           )}
           {activeTab === 'treinador' && (
             <TreinadorView folders={trainerFolders} />
