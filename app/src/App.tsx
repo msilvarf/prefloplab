@@ -114,10 +114,12 @@ function App() {
     <div className="h-screen flex flex-col bg-background">
       <Header activeTab={activeTab} onTabChange={setActiveTab} />
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar
-          library={library}
-          onSelectChart={handleSelectChart}
-        />
+        {activeTab !== 'visualizador' && (
+          <Sidebar
+            library={library}
+            onSelectChart={handleSelectChart}
+          />
+        )}
         <main className="flex-1 overflow-auto">
           {activeTab === 'biblioteca' && (
             <BibliotecaView
