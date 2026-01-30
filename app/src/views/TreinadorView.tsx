@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Folder, Range } from '@/types'
 import { POKER_HANDS } from '@/types'
-import { Play, ChevronLeft, Check, X, Trophy, Target, Zap } from 'lucide-react'
+import { Play, ChevronLeft, Check, X, Trophy, Target, Zap, History, BarChart2, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
@@ -31,6 +31,7 @@ const DEMO_SCENARIOS: TrainingHand[] = [
 export function TreinadorView({ folders }: TreinadorViewProps) {
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
   const [isTraining, setIsTraining] = useState(false)
+  const [isStatsOpen, setIsStatsOpen] = useState(true)
   const [currentHandIndex, setCurrentHandIndex] = useState(0)
   const [score, setScore] = useState(0)
   const [showResult, setShowResult] = useState(false)
@@ -125,6 +126,7 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
     setTrainingHistory([])
     setShowResult(false)
     setLastAnswer(null)
+    setIsStatsOpen(true)
   }
 
   const handleAnswer = (action: string) => {
@@ -259,68 +261,117 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
   const accuracy = currentHandIndex > 0 ? Math.round((score / currentHandIndex) * 100) : 100
 
   return (
-    <div className="h-full flex">
-      {/* Sidebar - Training Progress */}
-      <div className="w-80 border-r border-border/50 overflow-auto bg-gradient-to-b from-card/50 to-transparent">
-        <div className="p-6">
-          {/* Stop button */}
-          <button
-            onClick={() => setIsTraining(false)}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Parar treinamento</span>
-          </button>
+    <div className="h-full flex overflow-hidden">
+      {/* Sidebar - Training Progress (Collapsible) */}
+      <div
+        className={cn(
+          "border-r border-border/50 overflow-hidden bg-gradient-to-b from-card/50 to-transparent transition-all duration-300 ease-in-out shrink-0 relative",
+          isStatsOpen ? "w-80" : "w-16"
+        )}
+      >
+        <div className="p-4 h-full flex flex-col">
+          {/* Header & Toggle */}
+          <div className={cn("flex items-center mb-6", isStatsOpen ? "justify-between" : "justify-center")}>
+            {isStatsOpen && (
+              <button
+                onClick={() => setIsTraining(false)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors overflow-hidden whitespace-nowrap"
+              >
+                <ChevronLeft className="w-4 h-4 shrink-0" />
+                <span>Parar</span>
+              </button>
+            )}
 
-          {/* Stats Card */}
-          <div className="glass rounded-2xl p-5 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-muted-foreground">Precisão</span>
-              <span className={cn(
-                "text-2xl font-bold",
-                accuracy >= 80 ? "text-emerald-400" : accuracy >= 50 ? "text-amber-400" : "text-red-400"
-              )}>
-                {accuracy}%
-              </span>
-            </div>
-            <Progress value={accuracy} className="h-2" />
-            <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
-              <span>{score} corretas</span>
-              <span>{currentHandIndex - score} erradas</span>
-            </div>
+            <button
+              onClick={() => setIsStatsOpen(!isStatsOpen)}
+              className="p-1.5 rounded-lg hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors"
+              title={isStatsOpen ? "Recolher painel" : "Expandir painel"}
+            >
+              {isStatsOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
+            </button>
           </div>
 
-          {/* History */}
-          <div className="space-y-2">
-            <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Histórico</h4>
-            {trainingHistory.slice(-8).reverse().map((item, idx) => (
-              <div
-                key={idx}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm animate-fade-in",
-                  item.correct ? 'bg-emerald-500/10' : 'bg-red-500/10'
-                )}
-              >
-                <div className={cn(
-                  "w-6 h-6 rounded-full flex items-center justify-center",
-                  item.correct ? 'bg-emerald-500/20' : 'bg-red-500/20'
-                )}>
-                  {item.correct ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  ) : (
-                    <X className="w-3.5 h-3.5 text-red-400" />
+          {/* Collapsed View Icons */}
+          {!isStatsOpen && (
+            <div className="flex flex-col items-center gap-6 animate-fade-in">
+              <div className="flex flex-col items-center gap-1" title="Precisão">
+                <BarChart2 className={cn("w-5 h-5", accuracy >= 80 ? "text-emerald-400" : "text-amber-400")} />
+                <span className="text-[10px] font-bold">{accuracy}%</span>
+              </div>
+              <div className="w-full h-px bg-border/50" />
+              <div className="flex flex-col items-center gap-2" title="Histórico Recente">
+                {trainingHistory.slice(-5).reverse().map((item, idx) => (
+                  <div key={idx} className={cn("w-2 h-2 rounded-full", item.correct ? "bg-emerald-400" : "bg-red-400")} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Expanded View Content */}
+          {isStatsOpen && (
+            <div className="animate-fade-in flex-1 flex flex-col min-h-0">
+              {/* Stats Card */}
+              <div className="glass rounded-2xl p-5 mb-6 shrink-0">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm text-muted-foreground flex items-center gap-2">
+                    <BarChart2 className="w-4 h-4" /> Precisão
+                  </span>
+                  <span className={cn(
+                    "text-2xl font-bold",
+                    accuracy >= 80 ? "text-emerald-400" : accuracy >= 50 ? "text-amber-400" : "text-red-400"
+                  )}>
+                    {accuracy}%
+                  </span>
+                </div>
+                <Progress value={accuracy} className="h-2" />
+                <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+                  <span>{score} corretas</span>
+                  <span>{currentHandIndex - score} erradas</span>
+                </div>
+              </div>
+
+              {/* History */}
+              <div className="min-h-0 flex-1 flex flex-col">
+                <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2 shrink-0">
+                  <History className="w-3.5 h-3.5" /> Histórico
+                </h4>
+                <div className="overflow-y-auto pr-2 space-y-2 flex-1">
+                  {trainingHistory.slice().reverse().map((item, idx) => (
+                    <div
+                      key={idx}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm animate-fade-in",
+                        item.correct ? 'bg-emerald-500/10' : 'bg-red-500/10'
+                      )}
+                    >
+                      <div className={cn(
+                        "w-6 h-6 rounded-full flex items-center justify-center shrink-0",
+                        item.correct ? 'bg-emerald-500/20' : 'bg-red-500/20'
+                      )}>
+                        {item.correct ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <X className="w-3.5 h-3.5 text-red-400" />
+                        )}
+                      </div>
+                      <span className="font-medium w-8">{item.hand}</span>
+                      <span className="text-muted-foreground text-xs ml-auto truncate max-w-[100px]">{item.action}</span>
+                    </div>
+                  ))}
+                  {trainingHistory.length === 0 && (
+                    <div className="text-center py-6 text-muted-foreground text-xs">
+                      Histórico vazio
+                    </div>
                   )}
                 </div>
-                <span className="font-medium">{item.hand}</span>
-                <span className="text-muted-foreground text-xs ml-auto truncate max-w-[100px]">{item.action}</span>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Training area */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8 relative">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 relative min-w-[400px]">
         {/* Progress bar at top */}
         <div className="absolute top-6 left-8 right-8">
           <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
@@ -334,7 +385,7 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
             />
           </div>
           {/* Context info */}
-          <div className="flex items-center justify-center gap-3 mt-4 text-sm">
+          <div className="flex items-center justify-center gap-3 mt-4 text-sm scale-95 origin-top">
             <span className="px-3 py-1 rounded-full bg-white/5 text-muted-foreground">
               <span className="font-bold text-foreground">{currentHand.stackSize}</span>
             </span>
@@ -344,18 +395,23 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
         </div>
 
         {/* Poker table & cards */}
-        <div className="poker-table w-[420px] h-[260px] rounded-[50%] flex items-center justify-center relative">
+        <div className={cn(
+          "poker-table rounded-[50%] flex items-center justify-center relative transition-all duration-300",
+          isStatsOpen ? "w-[400px] h-[240px] scale-90" : "w-[480px] h-[280px] scale-100"
+        )}>
           {/* Cards */}
           <div className="flex items-center gap-3">
             <div className={cn(
-              "w-20 h-28 rounded-xl flex items-center justify-center text-white font-bold text-4xl poker-card bg-gradient-to-br",
-              currentCardColors[0]
+              "rounded-xl flex items-center justify-center text-white font-bold poker-card bg-gradient-to-br shadow-xl",
+              currentCardColors[0],
+              isStatsOpen ? "w-16 h-24 text-3xl" : "w-20 h-28 text-4xl"
             )}>
               {currentHand.hand.charAt(0)}
             </div>
             <div className={cn(
-              "w-20 h-28 rounded-xl flex items-center justify-center text-white font-bold text-4xl poker-card bg-gradient-to-br",
-              currentCardColors[1]
+              "rounded-xl flex items-center justify-center text-white font-bold poker-card bg-gradient-to-br shadow-xl",
+              currentCardColors[1],
+              isStatsOpen ? "w-16 h-24 text-3xl" : "w-20 h-28 text-4xl"
             )}>
               {currentHand.hand.charAt(1)}
             </div>
@@ -370,15 +426,15 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
         </div>
 
         {/* Action buttons */}
-        <div className="mt-16 flex flex-wrap justify-center gap-3 max-w-2xl">
+        <div className="mt-12 flex flex-wrap justify-center gap-3 max-w-2xl">
           {actionsToDisplay.map((action, idx) => (
             <button
               key={`${action.name}-${idx}`}
               onClick={() => handleAnswer(action.name)}
               disabled={showResult}
               className={cn(
-                "px-5 py-3 rounded-xl text-sm font-medium transition-all duration-200 action-btn text-white",
-                showResult && action.name === currentHand.correctAction && 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-background',
+                "px-5 py-3 rounded-xl text-sm font-medium transition-all duration-200 action-btn text-white shadow-lg shadow-black/20",
+                showResult && action.name === currentHand.correctAction && 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-background scale-105',
                 showResult && lastAnswer?.action === action.name && !lastAnswer.correct && 'ring-2 ring-red-400 ring-offset-2 ring-offset-background'
               )}
               style={{ backgroundColor: action.color }}
@@ -391,26 +447,30 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
         {/* Result feedback */}
         {showResult && lastAnswer && (
           <div className={cn(
-            "mt-8 px-8 py-4 rounded-2xl text-center animate-scale-in flex items-center gap-3",
-            lastAnswer.correct ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-red-500/20 border border-red-500/30'
+            "absolute bottom-8 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl text-center animate-fade-in-up flex items-center gap-3 shadow-2xl backdrop-blur-md whitespace-nowrap z-10",
+            lastAnswer.correct ? 'bg-emerald-900/80 border border-emerald-500/50' : 'bg-red-900/80 border border-red-500/50'
           )}>
             {lastAnswer.correct ? (
               <>
-                <Trophy className="w-6 h-6 text-emerald-400" />
-                <span className="text-emerald-400 font-medium">Correto! {currentHand.correctAction}</span>
+                <Trophy className="w-6 h-6 text-emerald-400 drop-shadow-md" />
+                <span className="text-emerald-100 font-bold text-lg">Correto! {currentHand.correctAction}</span>
               </>
             ) : (
               <>
-                <X className="w-6 h-6 text-red-400" />
-                <span className="text-red-400 font-medium">Incorreto. Resposta: {currentHand.correctAction}</span>
+                <X className="w-6 h-6 text-red-400 drop-shadow-md" />
+                <span className="text-red-100 font-bold text-lg">Incorreto. Resposta: {currentHand.correctAction}</span>
               </>
             )}
           </div>
         )}
       </div>
 
-      {/* Range preview */}
-      <div className="w-80 border-l border-border/50 p-6 overflow-auto bg-gradient-to-b from-card/50 to-transparent">
+      {/* Range preview - Wider and Bigger */}
+      <div className={cn(
+        "border-l border-border/50 p-6 overflow-auto bg-gradient-to-b from-card/50 to-transparent transition-all duration-300 shrink-0",
+        // Make expand wider when sidebar is closed or dynamically flexible
+        isStatsOpen ? "w-[400px]" : "w-[500px]"
+      )}>
         <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
           <Target className="w-4 h-4 text-violet-400" />
           Range de referência
@@ -418,16 +478,16 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
 
         {/* Only show if requested */}
         <div className={cn(
-          "transition-all duration-500",
+          "transition-all duration-500 ease-out origin-top-right",
           showReferenceRange ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
         )}>
-          <div className="glass rounded-xl p-3">
+          <div className="glass rounded-xl p-4 shadow-xl">
             {POKER_HANDS.map((row, rowIndex) => (
               <div key={rowIndex} className="flex">
                 {row.map(hand => {
                   let bgColor = 'transparent'
                   let isCurrentHand = hand === currentHand.hand.replace('s', '').replace('o', '')
-                  let opacity = 0.3
+                  let opacity = 0.35 // Slightly more visible inactive state for context
 
                   if (currentRange) {
                     const actionColor = currentRange.hands && currentRange.hands[hand]
@@ -447,13 +507,15 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
                     <div
                       key={hand}
                       className={cn(
-                        "w-5 h-5 text-[7px] font-medium rounded m-[1px] flex items-center justify-center",
-                        isCurrentHand && 'ring-1 ring-white'
+                        // Bigger cells and text
+                        "flex-1 aspect-square font-bold rounded-[3px] m-[1px] flex items-center justify-center transition-all",
+                        isStatsOpen ? "text-[10px]" : "text-xs", // Responsive text size
+                        isCurrentHand && 'ring-2 ring-white z-10 scale-110 shadow-lg'
                       )}
                       style={{
                         backgroundColor: bgColor,
-                        color: opacity === 1 ? 'white' : 'inherit',
-                        opacity: opacity
+                        color: opacity === 1 ? 'white' : 'hsl(var(--muted-foreground))',
+                        opacity: isCurrentHand ? 1 : opacity
                       }}
                     >
                       {hand}
@@ -463,15 +525,25 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
               </div>
             ))}
           </div>
+
+          {/* Helper Legend underneath if there's space */}
+          <div className="mt-4 flex flex-wrap gap-2 justify-center opacity-80">
+            {currentRange?.actions.slice(0, 4).map(action => (
+              <div key={action.id} className="flex items-center gap-1.5 text-[10px] bg-white/5 px-2 py-1 rounded">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: action.color }} />
+                <span>{action.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {!showReferenceRange && (
-          <div className="text-center py-12 animate-fade-in">
-            <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-white/5 flex items-center justify-center">
-              <Target className="w-6 h-6 text-muted-foreground" />
+          <div className="text-center py-24 animate-fade-in opacity-50">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center border border-white/5">
+              <Target className="w-8 h-8 text-muted-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground px-4">
-              O range de referência será exibido apenas se você errar a ação.
+            <p className="text-sm text-muted-foreground px-8 leading-relaxed">
+              O range de referência aparecerá aqui automaticamente se você cometer um erro.
             </p>
           </div>
         )}

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import {
   ChevronRight, ChevronDown, Plus, MoreVertical,
   Gamepad2, Users, Coins, Grid3X3, Pencil, Trash2,
-  ChevronUp, ChevronsUpDown, FolderOpen
+  ChevronUp, ChevronsUpDown, FolderOpen, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react'
 import type { LibraryNode, LibraryNodeType } from '@/types/library'
 import { getAllowedChildType, getAddChildLabel, getNodePlaceholder, getNodeTypeLabel } from '@/types/library'
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface SidebarProps {
   library: UseLibraryReturn
@@ -67,6 +68,9 @@ function getNodeBgGradient(type: LibraryNodeType): string {
 }
 
 export function Sidebar({ library, onSelectChart }: SidebarProps) {
+  // Collapsed state - Default TRUE as requested
+  const [isCollapsed, setIsCollapsed] = useState(true)
+
   // Dialog state
   const [dialogMode, setDialogMode] = useState<'add' | 'rename' | null>(null)
   const [dialogNodeType, setDialogNodeType] = useState<LibraryNodeType>('format')
@@ -143,9 +147,6 @@ export function Sidebar({ library, onSelectChart }: SidebarProps) {
     setInputValue('')
   }
 
-  /**
-   * Handle delete
-   */
   const handleDelete = (id: string) => {
     library.deleteNode(id)
     setContextMenuId(null)
@@ -162,145 +163,134 @@ export function Sidebar({ library, onSelectChart }: SidebarProps) {
     const childType = getAllowedChildType(node.type)
     const addLabel = getAddChildLabel(node.type)
 
+    // Helper to prevent deep indentation in collapsed mode (optional, but cleaner)
+    const paddingLeft = isCollapsed ? 0 : depth * 12
+
     return (
-      <div key={node.id} className="animate-fade-in">
-        {/* Node row */}
-        <div
-          className={cn(
-            'flex items-center gap-2 py-2 px-2 mx-2 rounded-lg cursor-pointer group transition-all duration-200',
-            isSelected
-              ? `bg-gradient-to-r ${getNodeBgGradient(node.type)} border-l-2 border-${node.type === 'format' ? 'violet' : node.type === 'scenario' ? 'blue' : node.type === 'stack' ? 'amber' : 'emerald'}-400`
-              : 'hover:bg-white/5'
-          )}
-          style={{ marginLeft: `${depth * 12}px` }}
-          onClick={() => {
-            library.selectNode(node.id)
-            if (isChart) {
-              onSelectChart(node)
-            } else {
-              library.toggleExpand(node.id)
-            }
-          }}
-        >
-          {/* Expand/collapse chevron */}
-          <div className="w-4 h-4 flex items-center justify-center">
-            {!isChart && (
-              <div className={cn(
-                "transition-transform duration-200",
-                isExpanded && "rotate-90"
-              )}>
-                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-              </div>
-            )}
-          </div>
-
-          {/* Node icon */}
-          <div className={cn(
-            "w-6 h-6 rounded-md flex items-center justify-center",
-            isSelected ? "bg-white/10" : "bg-transparent"
-          )}>
-            <NodeIcon type={node.type} className={getNodeColor(node.type)} />
-          </div>
-
-          {/* Node title */}
-          <span className={cn(
-            'text-sm flex-1 truncate transition-colors',
-            isSelected ? 'font-medium text-foreground' : 'text-muted-foreground group-hover:text-foreground'
-          )}>
-            {node.title}
-          </span>
-
-          {/* Children count badge */}
-          {hasChildren && !isChart && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 text-muted-foreground">
-              {node.children!.length}
-            </span>
-          )}
-
-          {/* Context menu button + dropdown */}
-          <div className="relative">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setContextMenuId(contextMenuId === node.id ? null : node.id)
-              }}
-              className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-white/10 rounded-md transition-all duration-200"
-            >
-              <MoreVertical className="w-3.5 h-3.5" />
-            </button>
-
-            {/* Context menu dropdown */}
-            {contextMenuId === node.id && (
+      <div key={node.id} className="animate-fade-in relative">
+        <TooltipProvider delayDuration={500}>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <div
-                ref={contextMenuRef}
-                className="absolute right-0 top-full mt-1 glass-strong rounded-xl shadow-xl py-2 z-50 w-48 animate-scale-in"
+                className={cn(
+                  'flex items-center gap-2 py-2 px-2 mx-2 rounded-lg cursor-pointer group transition-all duration-200',
+                  isSelected
+                    ? `bg-gradient-to-r ${getNodeBgGradient(node.type)} border-l-2 border-${node.type === 'format' ? 'violet' : node.type === 'scenario' ? 'blue' : node.type === 'stack' ? 'amber' : 'emerald'}-400`
+                    : 'hover:bg-white/5',
+                  isCollapsed && 'justify-center mx-1 px-1'
+                )}
+                style={{ marginLeft: isCollapsed ? 0 : `${paddingLeft}px` }}
+                onClick={() => {
+                  if (isCollapsed) {
+                    setIsCollapsed(false)
+                    library.selectNode(node.id)
+                    if (isChart) onSelectChart(node)
+                  } else {
+                    library.selectNode(node.id)
+                    if (isChart) {
+                      onSelectChart(node)
+                    } else {
+                      library.toggleExpand(node.id)
+                    }
+                  }
+                }}
               >
-                {/* Add child (if not chart) */}
-                {childType && addLabel && (
-                  <button
-                    onClick={() => openAddDialog(childType, node.id)}
-                    className="w-full px-3 py-2 text-sm text-left hover:bg-white/5 flex items-center gap-3 transition-colors"
-                  >
-                    <Plus className="w-4 h-4 text-emerald-400" />
-                    {addLabel}
-                  </button>
+                {/* Expand/collapse chevron - Hide if collapsed */}
+                {!isCollapsed && (
+                  <div className="w-4 h-4 flex items-center justify-center shrink-0">
+                    {!isChart && (
+                      <div className={cn(
+                        "transition-transform duration-200",
+                        isExpanded && "rotate-90"
+                      )}>
+                        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
                 )}
 
-                {/* Rename */}
-                <button
-                  onClick={() => openRenameDialog(node)}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-white/5 flex items-center gap-3 transition-colors"
-                >
-                  <Pencil className="w-4 h-4 text-blue-400" />
-                  Renomear
-                </button>
+                {/* Node icon */}
+                <div className={cn(
+                  "w-6 h-6 rounded-md flex items-center justify-center shrink-0",
+                  isSelected ? "bg-white/10" : "bg-transparent"
+                )}>
+                  <NodeIcon type={node.type} className={getNodeColor(node.type)} />
+                </div>
 
-                {/* Reorder */}
-                <button
-                  onClick={() => {
-                    library.moveNode(node.id, 'up')
-                    setContextMenuId(null)
-                  }}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-white/5 flex items-center gap-3 transition-colors"
-                >
-                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                  Mover para cima
-                </button>
-                <button
-                  onClick={() => {
-                    library.moveNode(node.id, 'down')
-                    setContextMenuId(null)
-                  }}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-white/5 flex items-center gap-3 transition-colors"
-                >
-                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                  Mover para baixo
-                </button>
+                {/* Node title - Hide if collapsed */}
+                {!isCollapsed && (
+                  <span className={cn(
+                    'text-sm flex-1 truncate transition-colors',
+                    isSelected ? 'font-medium text-foreground' : 'text-muted-foreground group-hover:text-foreground'
+                  )}>
+                    {node.title}
+                  </span>
+                )}
 
-                <div className="border-t border-border/50 my-2" />
+                {/* Children count badge - Hide if collapsed */}
+                {!isCollapsed && hasChildren && !isChart && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 text-muted-foreground">
+                    {node.children!.length}
+                  </span>
+                )}
 
-                {/* Delete */}
-                <button
-                  onClick={() => handleDelete(node.id)}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-red-500/10 flex items-center gap-3 text-red-400 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Excluir
-                </button>
+                {/* Context menu button - Only show if expanded or handle differently */}
+                {!isCollapsed && (
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setContextMenuId(contextMenuId === node.id ? null : node.id)
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-white/10 rounded-md transition-all duration-200"
+                    >
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </button>
+
+                    {contextMenuId === node.id && (
+                      <div
+                        ref={contextMenuRef}
+                        className="absolute right-0 top-full mt-1 glass-strong rounded-xl shadow-xl py-2 z-50 w-48 animate-scale-in"
+                        style={{ left: isCollapsed ? '100%' : 'auto', top: isCollapsed ? '0' : 'auto' }}
+                      >
+                        {childType && addLabel && (
+                          <button
+                            onClick={() => openAddDialog(childType, node.id)}
+                            className="w-full px-3 py-2 text-sm text-left hover:bg-white/5 flex items-center gap-3 transition-colors"
+                          >
+                            <Plus className="w-4 h-4 text-emerald-400" />
+                            {addLabel}
+                          </button>
+                        )}
+                        <button onClick={() => openRenameDialog(node)} className="w-full px-3 py-2 text-sm text-left hover:bg-white/5 flex items-center gap-3 transition-colors">
+                          <Pencil className="w-4 h-4 text-blue-400" /> Renomear
+                        </button>
+                        <div className="border-t border-border/50 my-2" />
+                        <button onClick={() => handleDelete(node.id)} className="w-full px-3 py-2 text-sm text-left hover:bg-red-500/10 flex items-center gap-3 text-red-400 transition-colors">
+                          <Trash2 className="w-4 h-4" /> Excluir
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </TooltipTrigger>
+            {isCollapsed && <TooltipContent side="right">
+              <p>{node.title}</p>
+              <p className="text-[10px] text-muted-foreground">{getNodeTypeLabel(node.type)}</p>
+            </TooltipContent>}
+          </Tooltip>
+        </TooltipProvider>
 
-        {/* Children */}
-        {isExpanded && hasChildren && (
+        {/* Children - Only render if Expanded AND NOT Collapsed */}
+        {!isCollapsed && isExpanded && hasChildren && (
           <div className="mt-1">
             {node.children!.map(child => renderNode(child, depth + 1))}
           </div>
         )}
 
-        {/* Empty state for expanded nodes */}
-        {isExpanded && !hasChildren && !isChart && childType && (
+        {/* Empty state addon */}
+        {!isCollapsed && isExpanded && !hasChildren && !isChart && childType && (
           <div
             className="py-2 px-4 text-xs text-muted-foreground italic cursor-pointer hover:text-foreground transition-colors flex items-center gap-2"
             style={{ marginLeft: `${(depth + 1) * 12 + 8}px` }}
@@ -315,15 +305,23 @@ export function Sidebar({ library, onSelectChart }: SidebarProps) {
   }
 
   return (
-    <aside className="w-72 bg-gradient-to-b from-sidebar to-background border-r border-border/50 flex flex-col shrink-0">
+    <aside
+      className={cn(
+        "bg-gradient-to-b from-sidebar to-background border-r border-border/50 flex flex-col shrink-0 transition-all duration-300 ease-in-out relative z-20",
+        isCollapsed ? "w-20" : "w-72"
+      )}
+    >
       {/* Header */}
-      <div className="p-4 border-b border-border/50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      <div className="p-4 border-b border-border/50 h-16 flex items-center justify-between">
+        {!isCollapsed && (
+          <div className="flex items-center gap-2 animate-fade-in">
             <FolderOpen className="w-4 h-4 text-violet-400" />
-            <span className="text-sm font-medium">Minha Biblioteca</span>
+            <span className="text-sm font-medium whitespace-nowrap">Biblioteca</span>
           </div>
-          <div className="flex items-center gap-1">
+        )}
+
+        <div className={cn("flex items-center gap-1", isCollapsed && "w-full justify-center")}>
+          {!isCollapsed && (
             <button
               onClick={() => openAddDialog('format', null)}
               className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground hover:text-foreground transition-all duration-200"
@@ -331,35 +329,43 @@ export function Sidebar({ library, onSelectChart }: SidebarProps) {
             >
               <Plus className="w-4 h-4" />
             </button>
-            <button
-              onClick={library.expandAll}
-              className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground hover:text-foreground transition-all duration-200"
-              title="Expandir tudo"
-            >
-              <ChevronsUpDown className="w-4 h-4" />
-            </button>
-          </div>
+          )}
+
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground hover:text-foreground transition-all duration-200"
+            title={isCollapsed ? "Expandir" : "Recolher"}
+          >
+            {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+          </button>
         </div>
       </div>
 
       {/* Tree */}
-      <div className="flex-1 overflow-auto py-3">
+      <div className="flex-1 overflow-auto py-3 no-scrollbar">
         {library.nodes.length === 0 ? (
-          <div className="px-4 py-12 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center">
-              <Gamepad2 className="w-8 h-8 text-violet-400" />
+          <div className={cn("px-4 py-12 text-center", isCollapsed && "px-1")}>
+            <div className={cn(
+              "rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center mb-4 mx-auto",
+              isCollapsed ? "w-10 h-10" : "w-16 h-16"
+            )}>
+              <Gamepad2 className={cn("text-violet-400", isCollapsed ? "w-5 h-5" : "w-8 h-8")} />
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Sua biblioteca está vazia
-            </p>
-            <Button
-              size="sm"
-              onClick={() => openAddDialog('format', null)}
-              className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-violet-500/20"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Criar Formato
-            </Button>
+            {!isCollapsed && (
+              <>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Biblioteca vazia
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => openAddDialog('format', null)}
+                  className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-violet-500/20"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Criar
+                </Button>
+              </>
+            )}
           </div>
         ) : (
           <div className="space-y-1">
@@ -369,26 +375,20 @@ export function Sidebar({ library, onSelectChart }: SidebarProps) {
       </div>
 
       {/* Footer - Legend */}
-      <div className="p-4 border-t border-border/50 bg-black/20">
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <span className="flex items-center gap-2 text-muted-foreground">
-            <span className="w-2.5 h-2.5 rounded-full bg-violet-400 shadow-sm shadow-violet-400/50" />
-            Formato
-          </span>
-          <span className="flex items-center gap-2 text-muted-foreground">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-400 shadow-sm shadow-blue-400/50" />
-            Cenário
-          </span>
-          <span className="flex items-center gap-2 text-muted-foreground">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm shadow-amber-400/50" />
-            Stack
-          </span>
-          <span className="flex items-center gap-2 text-muted-foreground">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
-            Chart
-          </span>
+      {!isCollapsed && (
+        <div className="p-4 border-t border-border/50 bg-black/20 animate-fade-in">
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <span className="flex items-center gap-2 text-muted-foreground">
+              <span className="w-2.5 h-2.5 rounded-full bg-violet-400 shadow-sm shadow-violet-400/50" />
+              Formato
+            </span>
+            <span className="flex items-center gap-2 text-muted-foreground">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
+              Chart
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Add/Rename Dialog */}
       <Dialog open={dialogMode !== null} onOpenChange={(open) => !open && setDialogMode(null)}>
