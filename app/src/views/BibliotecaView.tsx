@@ -1,7 +1,8 @@
 import type { LibraryNode } from '@/types/library'
 import { getNodeTypeLabel, getAllowedChildType, getAddChildLabel } from '@/types/library'
-import { Gamepad2, Users, Coins, Grid3X3, ArrowRight } from 'lucide-react'
+import { Gamepad2, Users, Coins, Grid3X3, ArrowRight, Sparkles, Edit3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 interface BibliotecaViewProps {
   selectedNode: LibraryNode | null
@@ -12,15 +13,32 @@ interface BibliotecaViewProps {
  * Get the appropriate icon for a node type
  */
 function getNodeIcon(type: LibraryNode['type']) {
+  const iconClass = "w-8 h-8"
   switch (type) {
     case 'format':
-      return <Gamepad2 className="w-6 h-6 text-violet-400" />
+      return <Gamepad2 className={cn(iconClass, "text-violet-400")} />
     case 'scenario':
-      return <Users className="w-6 h-6 text-blue-400" />
+      return <Users className={cn(iconClass, "text-blue-400")} />
     case 'stack':
-      return <Coins className="w-6 h-6 text-amber-400" />
+      return <Coins className={cn(iconClass, "text-amber-400")} />
     case 'chart':
-      return <Grid3X3 className="w-6 h-6 text-emerald-400" />
+      return <Grid3X3 className={cn(iconClass, "text-emerald-400")} />
+  }
+}
+
+/**
+ * Get gradient for each node type
+ */
+function getNodeGradient(type: LibraryNode['type']): string {
+  switch (type) {
+    case 'format':
+      return 'from-violet-500/20 to-purple-500/10'
+    case 'scenario':
+      return 'from-blue-500/20 to-cyan-500/10'
+    case 'stack':
+      return 'from-amber-500/20 to-orange-500/10'
+    case 'chart':
+      return 'from-emerald-500/20 to-teal-500/10'
   }
 }
 
@@ -29,23 +47,40 @@ export function BibliotecaView({ selectedNode, onOpenInEditor }: BibliotecaViewP
   if (!selectedNode) {
     return (
       <div className="h-full flex items-center justify-center p-8">
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-            <Gamepad2 className="w-10 h-10 text-muted-foreground/50" />
+        <div className="text-center max-w-lg animate-fade-in-up">
+          <div className="w-24 h-24 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center animate-float">
+            <Sparkles className="w-12 h-12 text-violet-400" />
           </div>
-          <h2 className="text-2xl font-semibold mb-3">Bem-vindo à Biblioteca</h2>
-          <p className="text-muted-foreground mb-6">
+          <h2 className="text-3xl font-bold mb-4">
+            <span className="gradient-text">Bem-vindo à Biblioteca</span>
+          </h2>
+          <p className="text-muted-foreground mb-8 text-lg">
             Organize seus ranges de poker usando a hierarquia:
           </p>
-          <div className="flex items-center justify-center gap-2 text-sm mb-6">
-            <span className="px-2 py-1 bg-violet-500/20 text-violet-400 rounded">Formato</span>
-            <ArrowRight className="w-4 h-4 text-muted-foreground" />
-            <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded">Cenário</span>
-            <ArrowRight className="w-4 h-4 text-muted-foreground" />
-            <span className="px-2 py-1 bg-amber-500/20 text-amber-400 rounded">Stack</span>
-            <ArrowRight className="w-4 h-4 text-muted-foreground" />
-            <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded">Chart</span>
+
+          {/* Hierarchy visual */}
+          <div className="flex items-center justify-center gap-3 flex-wrap mb-8">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-violet-500/20 to-violet-500/5 border border-violet-500/20">
+              <Gamepad2 className="w-4 h-4 text-violet-400" />
+              <span className="text-violet-300 font-medium">Formato</span>
+            </div>
+            <ArrowRight className="w-5 h-5 text-muted-foreground" />
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500/20 to-blue-500/5 border border-blue-500/20">
+              <Users className="w-4 h-4 text-blue-400" />
+              <span className="text-blue-300 font-medium">Cenário</span>
+            </div>
+            <ArrowRight className="w-5 h-5 text-muted-foreground" />
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-500/5 border border-amber-500/20">
+              <Coins className="w-4 h-4 text-amber-400" />
+              <span className="text-amber-300 font-medium">Stack</span>
+            </div>
+            <ArrowRight className="w-5 h-5 text-muted-foreground" />
+            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20">
+              <Grid3X3 className="w-4 h-4 text-emerald-400" />
+              <span className="text-emerald-300 font-medium">Chart</span>
+            </div>
           </div>
+
           <p className="text-sm text-muted-foreground">
             Use o menu lateral para criar formatos e organizar seus charts.
           </p>
@@ -59,66 +94,96 @@ export function BibliotecaView({ selectedNode, onOpenInEditor }: BibliotecaViewP
   const childCount = selectedNode.children?.length || 0
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex items-start gap-4 mb-8">
-        <div className="w-14 h-14 rounded-lg bg-card border border-border flex items-center justify-center">
-          {getNodeIcon(selectedNode.type)}
-        </div>
-        <div className="flex-1">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-            {getNodeTypeLabel(selectedNode.type)}
-          </p>
-          <h1 className="text-2xl font-semibold">{selectedNode.title}</h1>
+    <div className="p-8 max-w-4xl mx-auto animate-fade-in">
+      {/* Header Card */}
+      <div className={cn(
+        "glass rounded-3xl p-8 mb-8 bg-gradient-to-br",
+        getNodeGradient(selectedNode.type)
+      )}>
+        <div className="flex items-start gap-6">
+          <div className={cn(
+            "w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br",
+            getNodeGradient(selectedNode.type),
+            "shadow-lg"
+          )}>
+            {getNodeIcon(selectedNode.type)}
+          </div>
+          <div className="flex-1">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2 font-medium">
+              {getNodeTypeLabel(selectedNode.type)}
+            </p>
+            <h1 className="text-3xl font-bold mb-2">{selectedNode.title}</h1>
+            <p className="text-sm text-muted-foreground">
+              Criado em {new Date(selectedNode.createdAt).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+              })}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Chart action */}
       {selectedNode.type === 'chart' && (
-        <div className="bg-card border border-border rounded-lg p-6 mb-6">
-          <h3 className="font-medium mb-2">Editar Range</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Abra este chart no Editor para configurar as ações e mãos.
-          </p>
-          <Button onClick={() => onOpenInEditor(selectedNode)}>
-            Abrir no Editor
-          </Button>
+        <div className="glass rounded-2xl p-6 mb-6 card-hover">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 flex items-center justify-center">
+              <Edit3 className="w-7 h-7 text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg mb-1">Editar Range</h3>
+              <p className="text-sm text-muted-foreground">
+                Abra este chart no Editor para configurar as ações e mãos.
+              </p>
+            </div>
+            <Button
+              onClick={() => onOpenInEditor(selectedNode)}
+              size="lg"
+              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-lg shadow-emerald-500/20 rounded-xl"
+            >
+              Abrir no Editor
+            </Button>
+          </div>
         </div>
       )}
 
       {/* Children info (for non-chart nodes) */}
       {selectedNode.type !== 'chart' && (
         <div className="space-y-4">
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="font-medium mb-2">Conteúdo</h3>
-            <p className="text-sm text-muted-foreground">
-              {childCount === 0
-                ? `Nenhum ${childType ? getNodeTypeLabel(childType).toLowerCase() : 'item'} criado ainda.`
-                : `${childCount} ${childType ? getNodeTypeLabel(childType).toLowerCase() : 'item'}${childCount > 1 ? 's' : ''}`
-              }
-            </p>
+          <div className="glass rounded-2xl p-6">
+            <div className="flex items-center gap-4">
+              <div className={cn(
+                "w-14 h-14 rounded-xl flex items-center justify-center bg-gradient-to-br",
+                childType === 'scenario' ? 'from-blue-500/20 to-cyan-500/10' :
+                  childType === 'stack' ? 'from-amber-500/20 to-orange-500/10' :
+                    childType === 'chart' ? 'from-emerald-500/20 to-teal-500/10' :
+                      'from-muted to-muted/50'
+              )}>
+                <span className="text-2xl font-bold">{childCount}</span>
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Conteúdo</h3>
+                <p className="text-sm text-muted-foreground">
+                  {childCount === 0
+                    ? `Nenhum ${childType ? getNodeTypeLabel(childType).toLowerCase() : 'item'} criado ainda.`
+                    : `${childCount} ${childType ? getNodeTypeLabel(childType).toLowerCase() : 'item'}${childCount > 1 ? 's' : ''}`
+                  }
+                </p>
+              </div>
+            </div>
           </div>
 
           {addLabel && (
-            <p className="text-sm text-muted-foreground">
-              Clique com botão direito no item na sidebar para adicionar, renomear ou excluir.
-            </p>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-dashed border-border">
+              <span className="text-violet-400">💡</span>
+              <p className="text-sm text-muted-foreground">
+                Clique com botão direito no item na sidebar para adicionar, renomear ou excluir.
+              </p>
+            </div>
           )}
         </div>
       )}
-
-      {/* Metadata */}
-      <div className="mt-8 pt-6 border-t border-border">
-        <p className="text-xs text-muted-foreground">
-          Criado em: {new Date(selectedNode.createdAt).toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          })}
-        </p>
-      </div>
     </div>
   )
 }

@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import type { Folder, Range } from '@/types'
 import { POKER_HANDS } from '@/types'
-import { Play, ChevronLeft, Check, X, GripVertical } from 'lucide-react'
+import { Play, ChevronLeft, Check, X, Trophy, Target, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { cn } from '@/lib/utils'
 
 interface TreinadorViewProps {
   folders: Folder[]
@@ -37,38 +38,33 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
   const [trainingHistory, setTrainingHistory] = useState<Array<{ hand: string; correct: boolean; action: string }>>([])
   const [activeScenarios, setActiveScenarios] = useState<TrainingHand[]>(DEMO_SCENARIOS)
   const [currentRange, setCurrentRange] = useState<Range | null>(null)
-  const [currentCardColors, setCurrentCardColors] = useState<string[]>(['bg-blue-500', 'bg-orange-500'])
+  const [currentCardColors, setCurrentCardColors] = useState<string[]>(['bg-red-500', 'bg-red-500'])
 
   const currentHand = activeScenarios[currentHandIndex] || DEMO_SCENARIOS[0]
   const progress = ((currentHandIndex) / activeScenarios.length) * 100
 
   // Helper to get random suit colors
   const getRandomSuitColors = (hand: string) => {
-    // Colors representing suits: Spades(Black), Hearts(Red), Diamonds(Blue-ish/Cyan), Clubs(Green)
-    // Using tailwind classes
-    const colors = [
-      'bg-red-500',
-      'bg-slate-900',
-      'bg-blue-600',
-      'bg-green-600'
+    // Colors representing suits with gradients
+    const suitColors = [
+      { bg: 'from-red-500 to-red-600', text: 'text-white' },      // Hearts
+      { bg: 'from-slate-800 to-slate-900', text: 'text-white' },  // Spades
+      { bg: 'from-blue-500 to-blue-600', text: 'text-white' },    // Diamonds
+      { bg: 'from-emerald-500 to-emerald-600', text: 'text-white' } // Clubs
     ]
 
     const isSuited = hand.includes('s')
-    const isPair = !hand.includes('s') && !hand.includes('o') // e.g. 'AA'
 
-    const color1 = colors[Math.floor(Math.random() * colors.length)]
+    const color1 = suitColors[Math.floor(Math.random() * suitColors.length)]
     let color2 = color1
 
-    if (isSuited) {
-      // Same color
-      color2 = color1
-    } else {
-      // Different color
-      const otherColors = colors.filter(c => c !== color1)
+    if (!isSuited) {
+      // Different color for offsuit
+      const otherColors = suitColors.filter(c => c.bg !== color1.bg)
       color2 = otherColors[Math.floor(Math.random() * otherColors.length)]
     }
 
-    return [color1, color2]
+    return [color1.bg, color2.bg]
   }
 
   const parseFolderContext = (folderName: string) => {
@@ -144,29 +140,16 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
     const delay = isCorrect ? 1000 : 2500
 
     setTimeout(() => {
-      // Check if we are still processing the same user action
       if (currentHandIndex < activeScenarios.length - 1) {
-        // Move to next hand
         const nextIndex = currentHandIndex + 1
         setCurrentHandIndex(nextIndex)
         setCurrentCardColors(getRandomSuitColors(activeScenarios[nextIndex].hand))
         setShowResult(false)
         setLastAnswer(null)
       } else {
-        // End of training
         setIsTraining(false)
       }
     }, delay)
-  }
-
-  const getCardColor = (card: string) => {
-    if (card.includes('s')) return 'text-blue-400'
-    if (card.includes('o')) return 'text-red-400'
-    return 'text-white'
-  }
-
-  const formatHand = (hand: string) => {
-    return hand.replace('s', '').replace('o', '')
   }
 
   const actionsToDisplay = currentRange
@@ -190,36 +173,48 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
     return (
       <div className="h-full flex">
         {/* Sidebar */}
-        <div className="w-64 border-r border-border overflow-auto">
-          <div className="p-4">
-            <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
-              <ChevronLeft className="w-4 h-4" />
-              Voltar
-            </button>
+        <div className="w-80 border-r border-border/50 overflow-auto bg-gradient-to-b from-card/50 to-transparent">
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                <Target className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Treinamento</h3>
+                <p className="text-xs text-muted-foreground">Selecione um range</p>
+              </div>
+            </div>
 
-            <h3 className="text-sm font-medium mb-4">Escolha um treinamento à esquerda para começar</h3>
-
-            <div className="space-y-1">
+            <div className="space-y-2">
               {folders.map(folder => (
                 <div key={folder.id}>
                   <button
                     onClick={() => setSelectedFolder(selectedFolder === folder.id ? null : folder.id)}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${selectedFolder === folder.id ? 'bg-accent' : 'hover:bg-accent/50'
-                      }`}
+                    className={cn(
+                      "w-full text-left px-4 py-3 rounded-xl text-sm transition-all duration-200",
+                      selectedFolder === folder.id
+                        ? 'bg-gradient-to-r from-violet-500/20 to-purple-500/10 border border-violet-500/30'
+                        : 'hover:bg-white/5'
+                    )}
                   >
-                    {folder.name}
+                    <span className="font-medium">{folder.name}</span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      ({folder.ranges.length} ranges)
+                    </span>
                   </button>
 
                   {selectedFolder === folder.id && (
-                    <div className="ml-2 border-l border-border pl-2 mt-1 space-y-1">
+                    <div className="ml-4 mt-2 border-l-2 border-violet-500/30 pl-4 space-y-1 animate-fade-in">
                       {folder.ranges.map(range => (
                         <button
                           key={range.id}
                           onClick={() => handleStartTraining(range, folder.name)}
-                          className="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-accent/30 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2.5 rounded-lg text-sm hover:bg-white/5 flex items-center gap-3 group transition-all"
                         >
-                          <GripVertical className="w-3 h-3 text-muted-foreground" />
-                          {range.name}
+                          <Play className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                          <span className="text-muted-foreground group-hover:text-foreground transition-colors">
+                            {range.name}
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -228,25 +223,32 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
               ))}
 
               {folders.length === 0 && (
-                <div className="text-sm text-muted-foreground p-2">Nenhum range encontrado</div>
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground">Nenhum range encontrado</p>
+                  <p className="text-xs text-muted-foreground mt-1">Crie charts na biblioteca primeiro</p>
+                </div>
               )}
             </div>
           </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Play className="w-10 h-10 text-primary" />
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center max-w-md">
+            <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-violet-500/20 to-purple-500/10 flex items-center justify-center animate-float">
+              <Zap className="w-12 h-12 text-violet-400" />
             </div>
-            <h2 className="text-xl font-semibold mb-2">Treinamento</h2>
-            <p className="text-muted-foreground mb-6">
-              Escolha um range na barra lateral para praticar
+            <h2 className="text-2xl font-bold mb-3 gradient-text">Pronto para treinar?</h2>
+            <p className="text-muted-foreground mb-8">
+              Escolha um range na barra lateral para começar a praticar suas decisões preflop
             </p>
-            <Button onClick={() => handleStartTraining()} className="bg-primary hover:bg-primary/90">
-              <Play className="w-4 h-4 mr-2" />
-              Modo Demo (Clássico)
+            <Button
+              onClick={() => handleStartTraining()}
+              size="lg"
+              className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-violet-500/20 px-8"
+            >
+              <Play className="w-5 h-5 mr-2" />
+              Modo Demo
             </Button>
           </div>
         </div>
@@ -254,36 +256,63 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
     )
   }
 
+  const accuracy = currentHandIndex > 0 ? Math.round((score / currentHandIndex) * 100) : 100
+
   return (
     <div className="h-full flex">
-      {/* Sidebar */}
-      <div className="w-64 border-r border-border overflow-auto">
-        <div className="p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <button onClick={() => setIsTraining(false)} className="text-sm text-muted-foreground hover:text-foreground">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="text-sm font-medium">Parar</span>
-          </div>
+      {/* Sidebar - Training Progress */}
+      <div className="w-80 border-r border-border/50 overflow-auto bg-gradient-to-b from-card/50 to-transparent">
+        <div className="p-6">
+          {/* Stop button */}
+          <button
+            onClick={() => setIsTraining(false)}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Parar treinamento</span>
+          </button>
 
-          <div className="mb-4">
-            <div className="flex items-center justify-between text-sm mb-2">
-              <span>Progresso</span>
-              <span>{Math.round((score / (currentHandIndex + 1)) * 100) || 0}%</span>
+          {/* Stats Card */}
+          <div className="glass rounded-2xl p-5 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm text-muted-foreground">Precisão</span>
+              <span className={cn(
+                "text-2xl font-bold",
+                accuracy >= 80 ? "text-emerald-400" : accuracy >= 50 ? "text-amber-400" : "text-red-400"
+              )}>
+                {accuracy}%
+              </span>
             </div>
-            <Progress value={(score / (currentHandIndex + 1)) * 100 || 0} className="h-2" />
+            <Progress value={accuracy} className="h-2" />
+            <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+              <span>{score} corretas</span>
+              <span>{currentHandIndex - score} erradas</span>
+            </div>
           </div>
 
-          <div className="space-y-1">
-            {trainingHistory.slice(-10).map((item, idx) => (
+          {/* History */}
+          <div className="space-y-2">
+            <h4 className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Histórico</h4>
+            {trainingHistory.slice(-8).reverse().map((item, idx) => (
               <div
                 key={idx}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm ${item.correct ? 'text-green-500' : 'text-red-500'
-                  }`}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm animate-fade-in",
+                  item.correct ? 'bg-emerald-500/10' : 'bg-red-500/10'
+                )}
               >
-                {item.correct ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                <span>{item.hand}</span>
-                <span className="text-muted-foreground ml-auto">{item.action}</span>
+                <div className={cn(
+                  "w-6 h-6 rounded-full flex items-center justify-center",
+                  item.correct ? 'bg-emerald-500/20' : 'bg-red-500/20'
+                )}>
+                  {item.correct ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    <X className="w-3.5 h-3.5 text-red-400" />
+                  )}
+                </div>
+                <span className="font-medium">{item.hand}</span>
+                <span className="text-muted-foreground text-xs ml-auto truncate max-w-[100px]">{item.action}</span>
               </div>
             ))}
           </div>
@@ -291,58 +320,67 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
       </div>
 
       {/* Training area */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8">
-        {/* Progress */}
-        <div className="w-full max-w-md mb-8">
+      <div className="flex-1 flex flex-col items-center justify-center p-8 relative">
+        {/* Progress bar at top */}
+        <div className="absolute top-6 left-8 right-8">
           <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-            <span>{currentHandIndex + 1} / {activeScenarios.length}</span>
+            <span className="font-medium">{currentHandIndex + 1} / {activeScenarios.length}</span>
             <span>{Math.round(progress)}%</span>
-            {currentRange && <span className="text-xs ml-2 text-primary">{currentRange.name}</span>}
           </div>
-          <Progress value={progress} className="h-2" />
+          <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-violet-500 to-purple-500 transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          {/* Context info */}
+          <div className="flex items-center justify-center gap-3 mt-4 text-sm">
+            <span className="px-3 py-1 rounded-full bg-white/5 text-muted-foreground">
+              <span className="font-bold text-foreground">{currentHand.stackSize}</span>
+            </span>
+            <span className="text-muted-foreground">•</span>
+            <span className="text-muted-foreground">{currentHand.situation}</span>
+          </div>
         </div>
 
-        {/* Hand display */}
-        <div className="text-center mb-8">
-          {/* Situation Context */}
-          <div className="text-2xl font-bold mb-1">
-            {currentHand.stackSize}
-          </div>
-          <div className="text-base text-muted-foreground mb-2">
-            {currentHand.situation}
-          </div>
-        </div>
-
-        {/* Poker table */}
-        <div className="relative w-96 h-56 border-4 border-muted-foreground/30 rounded-[50%] mb-8 flex items-center justify-center">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-            <div className="flex items-center gap-2">
-              <div className={`w-16 h-24 ${currentCardColors[0]} rounded-xl flex items-center justify-center text-white font-bold text-3xl shadow-lg border-2 border-white/10`}>
-                {currentHand.hand.charAt(0)}
-              </div>
-              <div className={`w-16 h-24 ${currentCardColors[1]} rounded-xl flex items-center justify-center text-white font-bold text-3xl shadow-lg border-2 border-white/10`}>
-                {currentHand.hand.charAt(1)}
-              </div>
+        {/* Poker table & cards */}
+        <div className="poker-table w-[420px] h-[260px] rounded-[50%] flex items-center justify-center relative">
+          {/* Cards */}
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "w-20 h-28 rounded-xl flex items-center justify-center text-white font-bold text-4xl poker-card bg-gradient-to-br",
+              currentCardColors[0]
+            )}>
+              {currentHand.hand.charAt(0)}
             </div>
-            <div className="mt-4 px-4 py-1.5 bg-primary text-white text-sm rounded-full text-center font-medium shadow-sm">
+            <div className={cn(
+              "w-20 h-28 rounded-xl flex items-center justify-center text-white font-bold text-4xl poker-card bg-gradient-to-br",
+              currentCardColors[1]
+            )}>
+              {currentHand.hand.charAt(1)}
+            </div>
+          </div>
+
+          {/* Hero badge */}
+          <div className="absolute -bottom-4 left-1/2 -translate-x-1/2">
+            <div className="px-6 py-2 bg-gradient-to-r from-violet-600 to-purple-600 rounded-full text-sm font-semibold shadow-lg shadow-violet-500/30">
               Hero
             </div>
           </div>
         </div>
 
         {/* Action buttons */}
-        <div className="grid grid-cols-3 gap-3 max-w-lg">
+        <div className="mt-16 flex flex-wrap justify-center gap-3 max-w-2xl">
           {actionsToDisplay.map((action, idx) => (
             <button
               key={`${action.name}-${idx}`}
               onClick={() => handleAnswer(action.name)}
               disabled={showResult}
-              className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${showResult && action.name === currentHand.correctAction
-                ? 'ring-2 ring-green-500'
-                : showResult && lastAnswer?.action === action.name && !lastAnswer.correct
-                  ? 'ring-2 ring-red-500'
-                  : 'hover:opacity-80'
-                }`}
+              className={cn(
+                "px-5 py-3 rounded-xl text-sm font-medium transition-all duration-200 action-btn text-white",
+                showResult && action.name === currentHand.correctAction && 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-background',
+                showResult && lastAnswer?.action === action.name && !lastAnswer.correct && 'ring-2 ring-red-400 ring-offset-2 ring-offset-background'
+              )}
               style={{ backgroundColor: action.color }}
             >
               {action.name}
@@ -352,62 +390,69 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
 
         {/* Result feedback */}
         {showResult && lastAnswer && (
-          <div className={`mt-6 px-6 py-3 rounded-lg text-center ${lastAnswer.correct ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
-            }`}>
+          <div className={cn(
+            "mt-8 px-8 py-4 rounded-2xl text-center animate-scale-in flex items-center gap-3",
+            lastAnswer.correct ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-red-500/20 border border-red-500/30'
+          )}>
             {lastAnswer.correct ? (
-              <div className="flex items-center gap-2">
-                <Check className="w-5 h-5" />
-                <span>Correto! {currentHand.correctAction}</span>
-              </div>
+              <>
+                <Trophy className="w-6 h-6 text-emerald-400" />
+                <span className="text-emerald-400 font-medium">Correto! {currentHand.correctAction}</span>
+              </>
             ) : (
-              <div className="flex items-center gap-2">
-                <X className="w-5 h-5" />
-                <span>Incorreto. Resposta: {currentHand.correctAction}</span>
-              </div>
+              <>
+                <X className="w-6 h-6 text-red-400" />
+                <span className="text-red-400 font-medium">Incorreto. Resposta: {currentHand.correctAction}</span>
+              </>
             )}
           </div>
         )}
       </div>
 
       {/* Range preview */}
-      <div className="w-96 border-l border-border p-4 overflow-auto">
-        <h4 className="text-sm font-medium mb-4">Range de referência</h4>
+      <div className="w-80 border-l border-border/50 p-6 overflow-auto bg-gradient-to-b from-card/50 to-transparent">
+        <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
+          <Target className="w-4 h-4 text-violet-400" />
+          Range de referência
+        </h4>
 
-        {/* Only show if requested. Using CSS opacity/pointer-events to keep layout or conditional render */}
-        <div className={`transition-opacity duration-300 ${showReferenceRange ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-          <div className="inline-block">
+        {/* Only show if requested */}
+        <div className={cn(
+          "transition-all duration-500",
+          showReferenceRange ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+        )}>
+          <div className="glass rounded-xl p-3">
             {POKER_HANDS.map((row, rowIndex) => (
               <div key={rowIndex} className="flex">
                 {row.map(hand => {
                   let bgColor = 'transparent'
                   let isCurrentHand = hand === currentHand.hand.replace('s', '').replace('o', '')
                   let opacity = 0.3
-                  let textColor = 'inherit'
 
                   if (currentRange) {
                     const actionColor = currentRange.hands && currentRange.hands[hand]
                     if (actionColor) {
                       bgColor = actionColor
                       opacity = 1
-                      textColor = 'white'
                     }
                   } else {
                     const trainingHand = activeScenarios.find(h => h.hand.replace('s', '').replace('o', '') === hand)
                     if (trainingHand) {
                       bgColor = trainingHand.actionColor
                       opacity = 1
-                      textColor = 'white'
                     }
                   }
 
                   return (
                     <div
                       key={hand}
-                      className={`w-6 h-6 text-[8px] font-medium rounded m-0.5 flex items-center justify-center ${isCurrentHand ? 'ring-2 ring-white' : ''
-                        }`}
+                      className={cn(
+                        "w-5 h-5 text-[7px] font-medium rounded m-[1px] flex items-center justify-center",
+                        isCurrentHand && 'ring-1 ring-white'
+                      )}
                       style={{
                         backgroundColor: bgColor,
-                        color: textColor,
+                        color: opacity === 1 ? 'white' : 'inherit',
                         opacity: opacity
                       }}
                     >
@@ -419,9 +464,15 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
             ))}
           </div>
         </div>
+
         {!showReferenceRange && (
-          <div className="mt-8 text-center text-sm text-muted-foreground px-4">
-            O range de referência será exibido apenas se você errar a ação.
+          <div className="text-center py-12 animate-fade-in">
+            <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-white/5 flex items-center justify-center">
+              <Target className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground px-4">
+              O range de referência será exibido apenas se você errar a ação.
+            </p>
           </div>
         )}
       </div>
