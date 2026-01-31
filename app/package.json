@@ -6,8 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:netlify": "cross-env VITE_DEPLOY_TARGET=netlify npm run build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && gh-pages -d dist",
+    "deploy:netlify": "npm run build:netlify && netlify deploy --prod --dir=dist",
+    "deploy:netlify:preview": "npm run build:netlify && netlify deploy --dir=dist"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -63,9 +67,11 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.23",
+    "cross-env": "^10.1.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
+    "gh-pages": "^6.3.0",
     "globals": "^16.5.0",
     "kimi-plugin-inspect-react": "^1.0.3",
     "postcss": "^8.5.6",
