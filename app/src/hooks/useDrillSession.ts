@@ -59,26 +59,28 @@ const generateScenarios = (range: Range, folderName?: string): TrainingHand[] =>
     return scenarios.length > 0 ? scenarios : DEMO_SCENARIOS
 }
 
-// Helper to get random suit colors
+// Helper to get random suit colors - 4 poker colors: Red, Black, Blue, Green
 const getRandomSuitColors = (hand: string) => {
-    const suitColors = [
-        { bg: 'from-red-500 to-red-600', text: 'text-white' },      // Hearts
-        { bg: 'from-slate-800 to-slate-900', text: 'text-white' },  // Spades
-        { bg: 'from-blue-500 to-blue-600', text: 'text-white' },    // Diamonds
-        { bg: 'from-emerald-500 to-emerald-600', text: 'text-white' } // Clubs
+    const suits = [
+        { bg: 'from-red-500 to-red-600', text: 'text-white', symbol: '♥', name: 'hearts' },      // Hearts
+        { bg: 'from-slate-800 to-slate-900', text: 'text-white', symbol: '♠', name: 'spades' },    // Spades
+        { bg: 'from-blue-500 to-blue-600', text: 'text-white', symbol: '♦', name: 'diamonds' },    // Diamonds
+        { bg: 'from-emerald-500 to-emerald-600', text: 'text-white', symbol: '♣', name: 'clubs' }   // Clubs
     ]
 
     const isSuited = hand.includes('s')
 
-    const color1 = suitColors[Math.floor(Math.random() * suitColors.length)]
-    let color2 = color1
+    // Pick random first suit
+    const suit1 = suits[Math.floor(Math.random() * suits.length)]
+    let suit2 = suit1
 
     if (!isSuited) {
-        const otherColors = suitColors.filter(c => c.bg !== color1.bg)
-        color2 = otherColors[Math.floor(Math.random() * otherColors.length)]
+        // Pick random second suit different from first
+        const otherSuits = suits.filter(s => s.name !== suit1.name)
+        suit2 = otherSuits[Math.floor(Math.random() * otherSuits.length)]
     }
 
-    return [color1.bg, color2.bg]
+    return [suit1, suit2]
 }
 
 export function useDrillSession() {
@@ -90,7 +92,8 @@ export function useDrillSession() {
     const [trainingHistory, setTrainingHistory] = useState<Array<{ hand: string; correct: boolean; action: string }>>([])
     const [activeScenarios, setActiveScenarios] = useState<TrainingHand[]>(DEMO_SCENARIOS)
     const [currentRange, setCurrentRange] = useState<Range | null>(null)
-    const [currentCardColors, setCurrentCardColors] = useState<string[]>(['bg-red-500', 'bg-red-500'])
+    // Store full suit objects now
+    const [currentCardColors, setCurrentCardColors] = useState<any[]>(getRandomSuitColors(DEMO_SCENARIOS[0].hand))
 
     const currentHand = activeScenarios[currentHandIndex] || DEMO_SCENARIOS[0]
     const progress = ((currentHandIndex) / activeScenarios.length) * 100

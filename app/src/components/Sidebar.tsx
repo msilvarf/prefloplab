@@ -58,8 +58,8 @@ export function Sidebar({ library, onSelectChart, isCollapsed: controlledCollaps
         // Desktop: border-r, height auto (full). Mobile: border-b, controlled height
         "lg:border-r lg:border-b-0 border-b",
         isCollapsed
-          ? "lg:w-20 w-full h-16 lg:h-auto"
-          : "lg:w-72 w-full h-[400px] lg:h-auto"
+          ? "lg:w-20 w-full h-16 lg:h-full"
+          : "lg:w-72 w-full h-[400px] lg:h-full"
       )}
     >
       {/* Header */}

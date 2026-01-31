@@ -126,7 +126,7 @@ function App() {
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden relative">
       <Header activeTab={activeTab} onTabChange={setActiveTab} />
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
         {activeTab !== 'visualizador' && (
           <Sidebar
             library={library}
@@ -135,7 +135,7 @@ function App() {
             onToggleCollapse={setIsSidebarCollapsed}
           />
         )}
-        <main className="flex-1 overflow-auto bg-black/5 w-full">
+        <main className="flex-1 overflow-auto bg-black/5">
           <div className="page-container h-full flex flex-col py-6">
             {activeTab === 'biblioteca' && (
               <BibliotecaView
