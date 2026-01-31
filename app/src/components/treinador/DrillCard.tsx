@@ -1,12 +1,15 @@
 import { cn } from '@/lib/utils'
+import { Play } from 'lucide-react'
 
 interface DrillCardProps {
     hand: string
     cardColors: any[]
     isStatsOpen: boolean
+    showNextButton?: boolean
+    onNext?: () => void
 }
 
-export function DrillCard({ hand, cardColors, isStatsOpen }: DrillCardProps) {
+export function DrillCard({ hand, cardColors, isStatsOpen, showNextButton, onNext }: DrillCardProps) {
     return (
         <div className={cn(
             "poker-table rounded-[100px] flex items-center justify-center relative transition-all duration-300 border-8 border-[#1a1c2e] shadow-2xl",
@@ -70,6 +73,20 @@ export function DrillCard({ hand, cardColors, isStatsOpen }: DrillCardProps) {
                         <span className="text-lg opacity-80">{cardColors[1].symbol}</span>
                     </div>
                 </div>
+
+                {/* Next button - positioned to the right of cards */}
+                {showNextButton && onNext && (
+                    <button
+                        onClick={onNext}
+                        className="group w-16 h-16 rounded-full bg-zinc-800/90 hover:bg-zinc-700/90 border border-zinc-600/50 shadow-2xl backdrop-blur-md flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 ml-4 animate-fade-in"
+                        title="Próxima mão"
+                    >
+                        <div className="flex items-center gap-0.5 text-zinc-300 group-hover:text-white transition-colors">
+                            <div className="w-0.5 h-5 bg-current rounded-full" />
+                            <Play className="w-6 h-6 fill-current" />
+                        </div>
+                    </button>
+                )}
             </div>
 
             {/* Hero badge */}

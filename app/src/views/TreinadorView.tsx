@@ -131,6 +131,8 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
           hand={currentHand.hand}
           cardColors={currentCardColors}
           isStatsOpen={isStatsOpen}
+          showNextButton={showResult && !lastAnswer?.correct}
+          onNext={goToNextHand}
         />
 
         {/* Action buttons */}
@@ -148,7 +150,6 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
           show={showResult}
           correct={lastAnswer?.correct || false}
           correctAction={currentHand.correctAction}
-          onNext={goToNextHand}
         />
       </div>
 
