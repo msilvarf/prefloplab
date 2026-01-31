@@ -23,6 +23,9 @@ export function useLibrary() {
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
     const [selectedId, setSelectedId] = useState<string | null>(null)
 
+    // Clipboard for copy/paste functionality
+    const [clipboard, setClipboard] = useState<LibraryNode | null>(null)
+
     // Persist to localStorage whenever nodes change
     useEffect(() => {
         try {
@@ -235,11 +238,121 @@ export function useLibrary() {
         setExpandedIds(new Set())
     }, [])
 
+    /**
+     * Copy a node to clipboard (deep copy for pasting)
+     */
+    const copyNode = useCallback((node: LibraryNode) => {
+        // Deep copy the node
+        const deepCopy = JSON.parse(JSON.stringify(node))
+        setClipboard(deepCopy)
+    }, [])
+
+    /**
+     * Check if we can paste in the target parent
+     * We can only paste if the clipboard node type matches what the parent allows
+     */
+    const canPaste = useCallback((parentId: string): boolean => {
+        if (!clipboard) return false
+
+        const parent = findNodeById(parentId)
+        if (!parent) return false
+
+        // Check if parent can have children of clipboard's type
+        const allowedChildType =
+            parent.type === 'format' ? 'scenario' :
+                parent.type === 'scenario' ? 'stack' :
+                    parent.type === 'stack' ? 'chart' : null
+
+        return clipboard.type === allowedChildType
+    }, [clipboard, findNodeById])
+
+    /**
+     * Deep regenerate IDs for a node and all its children
+     */
+    const regenerateIds = (node: LibraryNode): LibraryNode => {
+        const newId = `${node.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        return {
+            ...node,
+            id: newId,
+            rangeId: node.type === 'chart' ? `range-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` : node.rangeId,
+            children: node.children?.map(child => regenerateIds(child))
+        }
+    }
+
+    /**
+     * Paste clipboard node as child of target parent
+     */
+    const pasteNode = useCallback((parentId: string): string | null => {
+        if (!clipboard || !canPaste(parentId)) return null
+
+        // Create copy with new IDs
+        const nodeToPaste = regenerateIds(clipboard)
+        nodeToPaste.title = `${clipboard.title} (cópia)`
+        nodeToPaste.createdAt = new Date().toISOString()
+
+        const addToParent = (nodeList: LibraryNode[]): LibraryNode[] => {
+            return nodeList.map(node => {
+                if (node.id === parentId) {
+                    return {
+                        ...node,
+                        children: [...(node.children || []), nodeToPaste]
+                    }
+                }
+                if (node.children) {
+                    return {
+                        ...node,
+                        children: addToParent(node.children)
+                    }
+                }
+                return node
+            })
+        }
+
+        setNodes(prev => addToParent(prev))
+        setExpandedIds(prev => new Set([...prev, parentId]))
+        return nodeToPaste.id
+    }, [clipboard, canPaste])
+
+    /**
+     * Clone a node in place (duplicate as sibling)
+     */
+    const cloneNode = useCallback((nodeId: string): string | null => {
+        const originalNode = findNodeById(nodeId)
+        if (!originalNode) return null
+
+        // Create cloned node with new IDs
+        const clonedNode = regenerateIds(originalNode)
+        clonedNode.title = `${originalNode.title} (cópia)`
+        clonedNode.createdAt = new Date().toISOString()
+
+        // Find parent and add clone as sibling
+        const addClone = (nodeList: LibraryNode[]): LibraryNode[] => {
+            // Check if node is at this level
+            const index = nodeList.findIndex(n => n.id === nodeId)
+            if (index !== -1) {
+                // Found at this level, insert clone after original
+                const newList = [...nodeList]
+                newList.splice(index + 1, 0, clonedNode)
+                return newList
+            }
+
+            // Search in children
+            return nodeList.map(node => ({
+                ...node,
+                children: node.children ? addClone(node.children) : undefined
+            }))
+        }
+
+        setNodes(prev => addClone(prev))
+        return clonedNode.id
+    }, [findNodeById])
+
     return {
         nodes,
         expandedIds,
         selectedId,
         selectedNode,
+        clipboard,
         findNodeById,
         toggleExpand,
         selectNode,
@@ -250,7 +363,11 @@ export function useLibrary() {
         moveNode,
         expandAll,
         collapseAll,
-        clearLibrary
+        clearLibrary,
+        copyNode,
+        pasteNode,
+        cloneNode,
+        canPaste
     }
 }
 

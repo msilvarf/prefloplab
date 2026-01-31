@@ -14,11 +14,12 @@ import { cn } from '@/lib/utils'
 interface SidebarProps {
   library: UseLibraryReturn
   onSelectChart: (node: LibraryNode) => void
+  onTrain?: (node: LibraryNode) => void
   isCollapsed?: boolean
   onToggleCollapse?: (collapsed: boolean) => void
 }
 
-export function Sidebar({ library, onSelectChart, isCollapsed: controlledCollapsed, onToggleCollapse }: SidebarProps) {
+export function Sidebar({ library, onSelectChart, onTrain, isCollapsed: controlledCollapsed, onToggleCollapse }: SidebarProps) {
   // Internal state fallback if not controlled
   const [internalCollapsed, setInternalCollapsed] = useState(false)
 
@@ -90,6 +91,7 @@ export function Sidebar({ library, onSelectChart, isCollapsed: controlledCollaps
                 onAddChild={openAddDialog}
                 onRename={openRenameDialog}
                 onDelete={handleDelete}
+                onTrain={onTrain}
               />
             ))}
           </div>

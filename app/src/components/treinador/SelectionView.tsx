@@ -1,4 +1,4 @@
-import { Play, Target, Zap } from 'lucide-react'
+import { Play, Target, Zap, Grid3X3 } from 'lucide-react'
 import type { Folder, Range } from '@/types'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -7,9 +7,10 @@ import { useState } from 'react'
 interface SelectionViewProps {
     folders: Folder[]
     onStartTraining: (range?: Range, folderName?: string) => void
+    onStartRangeTraining: (range: Range, folderName?: string) => void
 }
 
-export function SelectionView({ folders, onStartTraining }: SelectionViewProps) {
+export function SelectionView({ folders, onStartTraining, onStartRangeTraining }: SelectionViewProps) {
     const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
 
     return (
@@ -46,18 +47,35 @@ export function SelectionView({ folders, onStartTraining }: SelectionViewProps) 
                                 </button>
 
                                 {selectedFolder === folder.id && (
-                                    <div className="ml-4 mt-2 border-l-2 border-violet-500/30 pl-4 space-y-1 animate-fade-in">
+                                    <div className="ml-4 mt-2 border-l-2 border-violet-500/30 pl-4 space-y-2 animate-fade-in">
                                         {folder.ranges.map(range => (
-                                            <button
-                                                key={range.id}
-                                                onClick={() => onStartTraining(range, folder.name)}
-                                                className="w-full text-left px-4 py-2.5 rounded-lg text-sm hover:bg-white/5 flex items-center gap-3 group transition-all"
-                                            >
-                                                <Play className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-                                                <span className="text-muted-foreground group-hover:text-foreground transition-colors">
+                                            <div key={range.id} className="space-y-1">
+                                                <span className="text-sm text-muted-foreground px-4 py-1 block">
                                                     {range.name}
                                                 </span>
-                                            </button>
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={() => onStartTraining(range, folder.name)}
+                                                        className="flex-1 text-left px-4 py-2 rounded-lg text-xs hover:bg-white/5 flex items-center gap-2 group transition-all"
+                                                        title="Treino de mãos: uma mão por vez"
+                                                    >
+                                                        <Play className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                                                        <span className="text-muted-foreground group-hover:text-foreground transition-colors">
+                                                            Mãos
+                                                        </span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => onStartRangeTraining(range, folder.name)}
+                                                        className="flex-1 text-left px-4 py-2 rounded-lg text-xs hover:bg-white/5 flex items-center gap-2 group transition-all"
+                                                        title="Treino de range: pinte o grid"
+                                                    >
+                                                        <Grid3X3 className="w-3.5 h-3.5 text-violet-400 group-hover:scale-110 transition-transform" />
+                                                        <span className="text-muted-foreground group-hover:text-foreground transition-colors">
+                                                            Range
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            </div>
                                         ))}
                                     </div>
                                 )}

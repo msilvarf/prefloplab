@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { ChevronRight, MoreVertical, Plus } from 'lucide-react'
+import { ChevronRight, MoreVertical, Plus, Folder, FolderOpen } from 'lucide-react'
 import type { LibraryNode, LibraryNodeType } from '@/types/library'
 import type { UseLibraryReturn } from '@/hooks/useLibrary'
 import { getAllowedChildType, getAddChildLabel, getNodeTypeLabel } from '@/types/library'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { NodeIcon, getNodeColor, getNodeBgGradient } from './NodeStyles'
+import { NodeIcon, getNodeColor } from './NodeStyles'
 import { NodeContextMenu } from './NodeContextMenu'
 import { cn } from '@/lib/utils'
 
@@ -18,6 +18,7 @@ interface TreeNodeProps {
     onAddChild: (type: LibraryNodeType, parentId: string) => void
     onRename: (node: LibraryNode) => void
     onDelete: (id: string) => void
+    onTrain?: (node: LibraryNode) => void
 }
 
 export function TreeNode({
@@ -29,7 +30,8 @@ export function TreeNode({
     onToggleCollapse,
     onAddChild,
     onRename,
-    onDelete
+    onDelete,
+    onTrain
 }: TreeNodeProps) {
     const [contextMenuOpen, setContextMenuOpen] = useState(false)
 
@@ -40,7 +42,10 @@ export function TreeNode({
     const childType = getAllowedChildType(node.type)
     const addLabel = getAddChildLabel(node.type)
 
-    const paddingLeft = isCollapsed ? 0 : depth * 12
+    // É uma "pasta" se não é chart (format, scenario, stack)
+    const isFolder = !isChart
+
+    const paddingLeft = isCollapsed ? 0 : depth * 16
 
     const handleNodeClick = () => {
         if (isCollapsed) {
@@ -57,6 +62,43 @@ export function TreeNode({
         }
     }
 
+    // Handlers para o menu de contexto
+    const handleCopy = () => {
+        library.copyNode(node)
+    }
+
+    const handlePaste = () => {
+        library.pasteNode(node.id)
+    }
+
+    const handleClone = () => {
+        library.cloneNode(node.id)
+    }
+
+    const handleMoveUp = () => {
+        library.moveNode(node.id, 'up')
+    }
+
+    const handleMoveDown = () => {
+        library.moveNode(node.id, 'down')
+    }
+
+    // Verifica se pode colar neste nó
+    const canPaste = library.canPaste(node.id)
+
+    // Ícone dinâmico baseado no tipo
+    const renderNodeIcon = () => {
+        if (isFolder) {
+            // Usar ícone de pasta para nós que não são chart
+            if (isExpanded && hasChildren) {
+                return <FolderOpen className={cn("w-4 h-4", getNodeColor(node.type))} />
+            }
+            return <Folder className={cn("w-4 h-4", getNodeColor(node.type))} />
+        }
+        // Para charts, usar o ícone de grid
+        return <NodeIcon type={node.type} className={cn("w-4 h-4", getNodeColor(node.type))} />
+    }
+
     return (
         <div className="animate-fade-in relative">
             <TooltipProvider delayDuration={0}>
@@ -64,10 +106,10 @@ export function TreeNode({
                     <TooltipTrigger asChild>
                         <div
                             className={cn(
-                                'flex items-center gap-2 py-2 px-2 mx-2 rounded-lg cursor-pointer group transition-all duration-200',
+                                'flex items-center gap-2 py-1.5 px-2 mx-1 rounded cursor-pointer group transition-all duration-150',
                                 isSelected
-                                    ? `bg-gradient-to-r ${getNodeBgGradient(node.type)} border-l-2 border-${node.type === 'format' ? 'violet' : node.type === 'scenario' ? 'blue' : node.type === 'stack' ? 'amber' : 'emerald'}-400`
-                                    : 'hover:bg-white/5',
+                                    ? 'bg-white/10 border-l-2 border-primary'
+                                    : 'hover:bg-white/5 border-l-2 border-transparent',
                                 isCollapsed && 'justify-center mx-1 px-1 py-3 mb-1'
                             )}
                             style={{ marginLeft: isCollapsed ? 0 : `${paddingLeft}px` }}
@@ -76,12 +118,12 @@ export function TreeNode({
                             {/* Expand/collapse chevron - Hide if collapsed */}
                             {!isCollapsed && (
                                 <div className="w-4 h-4 flex items-center justify-center shrink-0">
-                                    {!isChart && (
+                                    {isFolder && (
                                         <div className={cn(
                                             "transition-transform duration-200",
                                             isExpanded && "rotate-90"
                                         )}>
-                                            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                                            <ChevronRight className="w-3 h-3 text-muted-foreground/70" />
                                         </div>
                                     )}
                                 </div>
@@ -89,11 +131,10 @@ export function TreeNode({
 
                             {/* Node icon - Larger wrapper when collapsed */}
                             <div className={cn(
-                                "rounded-md flex items-center justify-center shrink-0 transition-all",
-                                isSelected ? "bg-white/10" : "bg-transparent",
-                                isCollapsed ? "w-10 h-10 bg-white/5 border border-white/5 shadow-sm" : "w-6 h-6"
+                                "flex items-center justify-center shrink-0 transition-all",
+                                isCollapsed ? "w-10 h-10 bg-white/5 border border-white/5 shadow-sm rounded-md" : ""
                             )}>
-                                <NodeIcon type={node.type} className={getNodeColor(node.type)} />
+                                {renderNodeIcon()}
                             </div>
 
                             {/* Node title - Hide if collapsed */}
@@ -106,9 +147,9 @@ export function TreeNode({
                                 </span>
                             )}
 
-                            {/* Children count badge - Hide if collapsed */}
-                            {!isCollapsed && hasChildren && !isChart && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 text-muted-foreground">
+                            {/* Children count badge - Only show for folders with children */}
+                            {!isCollapsed && hasChildren && isFolder && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground font-medium">
                                     {node.children!.length}
                                 </span>
                             )}
@@ -121,9 +162,9 @@ export function TreeNode({
                                             e.stopPropagation()
                                             setContextMenuOpen(!contextMenuOpen)
                                         }}
-                                        className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-white/10 rounded-md transition-all duration-200"
+                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 rounded transition-all duration-200"
                                     >
-                                        <MoreVertical className="w-3.5 h-3.5" />
+                                        <MoreVertical className="w-3.5 h-3.5 text-muted-foreground" />
                                     </button>
 
                                     <NodeContextMenu
@@ -133,6 +174,13 @@ export function TreeNode({
                                         onAddChild={onAddChild}
                                         onRename={onRename}
                                         onDelete={onDelete}
+                                        onCopy={handleCopy}
+                                        onPaste={handlePaste}
+                                        onClone={handleClone}
+                                        onMoveUp={handleMoveUp}
+                                        onMoveDown={handleMoveDown}
+                                        onTrain={onTrain}
+                                        canPaste={canPaste}
                                         isCollapsed={isCollapsed}
                                     />
                                 </div>
@@ -148,7 +196,7 @@ export function TreeNode({
 
             {/* Children - Only render if Expanded AND NOT Collapsed */}
             {!isCollapsed && isExpanded && hasChildren && (
-                <div className="mt-1">
+                <div className="mt-0.5">
                     {node.children!.map(child => (
                         <TreeNode
                             key={child.id}
@@ -161,6 +209,7 @@ export function TreeNode({
                             onAddChild={onAddChild}
                             onRename={onRename}
                             onDelete={onDelete}
+                            onTrain={onTrain}
                         />
                     ))}
                 </div>
@@ -169,8 +218,8 @@ export function TreeNode({
             {/* Empty state addon */}
             {!isCollapsed && isExpanded && !hasChildren && !isChart && childType && (
                 <div
-                    className="py-2 px-4 text-xs text-muted-foreground italic cursor-pointer hover:text-foreground transition-colors flex items-center gap-2"
-                    style={{ marginLeft: `${(depth + 1) * 12 + 8}px` }}
+                    className="py-1.5 px-4 text-xs text-muted-foreground/60 italic cursor-pointer hover:text-foreground transition-colors flex items-center gap-2"
+                    style={{ marginLeft: `${(depth + 1) * 16 + 8}px` }}
                     onClick={() => onAddChild(childType, node.id)}
                 >
                     <Plus className="w-3 h-3" />

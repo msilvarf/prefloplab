@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Folder } from '@/types'
+import type { Folder, Range } from '@/types'
 import { useDrillSession } from '@/hooks/useDrillSession'
 import { SelectionView } from '@/components/treinador/SelectionView'
 import { StatsPanel } from '@/components/treinador/StatsPanel'
@@ -7,6 +7,7 @@ import { DrillCard } from '@/components/treinador/DrillCard'
 import { ActionButtons } from '@/components/treinador/ActionButtons'
 import { ReferenceRange } from '@/components/treinador/ReferenceRange'
 import { ResultFeedback } from '@/components/treinador/ResultFeedback'
+import { RangeTrainingView } from '@/components/treinador/RangeTrainingView'
 
 interface TreinadorViewProps {
   folders: Folder[]
@@ -14,6 +15,8 @@ interface TreinadorViewProps {
 
 export function TreinadorView({ folders }: TreinadorViewProps) {
   const [isStatsOpen, setIsStatsOpen] = useState(true)
+  const [rangeTrainingMode, setRangeTrainingMode] = useState(false)
+  const [rangeTrainingData, setRangeTrainingData] = useState<{ range: Range; folderName?: string } | null>(null)
 
   const {
     isTraining,
@@ -51,9 +54,38 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
   // Show reference range ONLY if result is shown AND answer was incorrect
   const showReferenceRange = !!(showResult && lastAnswer && !lastAnswer.correct)
 
+  // Handler for starting range training
+  const handleStartRangeTraining = (range: Range, folderName?: string) => {
+    setRangeTrainingData({ range, folderName })
+    setRangeTrainingMode(true)
+  }
+
+  // Handler for going back from range training
+  const handleBackFromRangeTraining = () => {
+    setRangeTrainingMode(false)
+    setRangeTrainingData(null)
+  }
+
+  // If in range training mode, show the range training view
+  if (rangeTrainingMode && rangeTrainingData) {
+    return (
+      <RangeTrainingView
+        range={rangeTrainingData.range}
+        folderName={rangeTrainingData.folderName}
+        onBack={handleBackFromRangeTraining}
+      />
+    )
+  }
+
   // If not training, show selection view
   if (!isTraining) {
-    return <SelectionView folders={folders} onStartTraining={startTraining} />
+    return (
+      <SelectionView
+        folders={folders}
+        onStartTraining={startTraining}
+        onStartRangeTraining={handleStartRangeTraining}
+      />
+    )
   }
 
   return (
