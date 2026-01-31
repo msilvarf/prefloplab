@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import type { Range } from '@/types'
+import { useSRS } from './useSRS'
+import { calculateNewSRSState } from '../utils/srs'
 
 export interface TrainingHand {
     hand: string
@@ -51,12 +53,16 @@ const generateScenarios = (range: Range, folderName?: string): TrainingHand[] =>
         })
     }
 
-    for (let i = scenarios.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [scenarios[i], scenarios[j]] = [scenarios[j], scenarios[i]];
-    }
-
     return scenarios.length > 0 ? scenarios : DEMO_SCENARIOS
+}
+
+// Fisher-Yates shuffle
+const shuffleStats = <T>(array: T[]) => {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array
 }
 
 // Helper to get random suit colors - 4 poker colors: Red, Black, Blue, Green
@@ -95,6 +101,8 @@ export function useDrillSession() {
     // Store full suit objects now
     const [currentCardColors, setCurrentCardColors] = useState<any[]>(getRandomSuitColors(DEMO_SCENARIOS[0].hand))
 
+    const { getDueHands, getCardStats, updateCardStats } = useSRS()
+
     const currentHand = activeScenarios[currentHandIndex] || DEMO_SCENARIOS[0]
     const progress = ((currentHandIndex) / activeScenarios.length) * 100
     const accuracy = currentHandIndex > 0 ? Math.round((score / currentHandIndex) * 100) : 100
@@ -102,7 +110,16 @@ export function useDrillSession() {
     const startTraining = (range?: Range, folderName?: string) => {
         if (range) {
             setCurrentRange(range)
-            const scenarios = generateScenarios(range, folderName)
+            let scenarios = generateScenarios(range, folderName)
+
+            // SRS Sorting Logic
+            const dueHands = getDueHands(range.id)
+            const dueScenarios = scenarios.filter(s => dueHands.includes(s.hand))
+            const newScenarios = scenarios.filter(s => !dueHands.includes(s.hand))
+
+            // Shuffle both independently so due cards are random among themselves, but always come first
+            scenarios = [...shuffleStats(dueScenarios), ...shuffleStats(newScenarios)]
+
             setActiveScenarios(scenarios)
             setCurrentCardColors(getRandomSuitColors(scenarios[0].hand))
         } else {
@@ -127,6 +144,13 @@ export function useDrillSession() {
         setLastAnswer({ correct: isCorrect, action })
         setTrainingHistory(prev => [...prev, { hand: currentHand.hand, correct: isCorrect, action }])
         setShowResult(true)
+
+        // Update SRS Stats
+        if (currentRange) {
+            const currentStats = getCardStats(currentRange.id, currentHand.hand)
+            const newStats = calculateNewSRSState(currentStats, isCorrect)
+            updateCardStats(currentRange.id, currentHand.hand, newStats)
+        }
 
         // Delay to allow user to see result
         const delay = isCorrect ? 1000 : 2500
