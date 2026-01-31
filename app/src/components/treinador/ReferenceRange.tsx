@@ -39,7 +39,8 @@ export function ReferenceRange({
                         <div key={rowIndex} className="flex">
                             {row.map(hand => {
                                 let bgColor = 'transparent'
-                                let isCurrentHand = hand === currentHand.hand.replace('s', '').replace('o', '')
+                                // Match the hand exactly (AA, AKs, AKo, etc.)
+                                const isCurrentHand = hand === currentHand.hand
                                 let opacity = 0.35
 
                                 if (currentRange) {
@@ -49,7 +50,7 @@ export function ReferenceRange({
                                         opacity = 1
                                     }
                                 } else {
-                                    const trainingHand = activeScenarios.find(h => h.hand.replace('s', '').replace('o', '') === hand)
+                                    const trainingHand = activeScenarios.find(h => h.hand === hand)
                                     if (trainingHand) {
                                         bgColor = trainingHand.actionColor
                                         opacity = 1
@@ -62,7 +63,7 @@ export function ReferenceRange({
                                         className={cn(
                                             "flex-1 aspect-square font-bold rounded-[3px] m-[1px] flex items-center justify-center transition-all",
                                             isStatsOpen ? "text-[10px]" : "text-xs",
-                                            isCurrentHand && 'ring-2 ring-white z-10 scale-110 shadow-lg'
+                                            isCurrentHand && 'ring-2 ring-white ring-offset-1 ring-offset-black z-10 scale-125 shadow-lg shadow-white/30 animate-pulse'
                                         )}
                                         style={{
                                             backgroundColor: bgColor,

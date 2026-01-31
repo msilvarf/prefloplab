@@ -152,20 +152,25 @@ export function useDrillSession() {
             updateCardStats(currentRange.id, currentHand.hand, newStats)
         }
 
-        // Delay to allow user to see result
-        const delay = isCorrect ? 1000 : 2500
+        // Auto-advance only when correct
+        if (isCorrect) {
+            setTimeout(() => {
+                goToNextHand()
+            }, 1000)
+        }
+        // When incorrect, wait for user to click "next" button
+    }
 
-        setTimeout(() => {
-            if (currentHandIndex < activeScenarios.length - 1) {
-                const nextIndex = currentHandIndex + 1
-                setCurrentHandIndex(nextIndex)
-                setCurrentCardColors(getRandomSuitColors(activeScenarios[nextIndex].hand))
-                setShowResult(false)
-                setLastAnswer(null)
-            } else {
-                setIsTraining(false)
-            }
-        }, delay)
+    const goToNextHand = () => {
+        if (currentHandIndex < activeScenarios.length - 1) {
+            const nextIndex = currentHandIndex + 1
+            setCurrentHandIndex(nextIndex)
+            setCurrentCardColors(getRandomSuitColors(activeScenarios[nextIndex].hand))
+            setShowResult(false)
+            setLastAnswer(null)
+        } else {
+            setIsTraining(false)
+        }
     }
 
     const stopTraining = () => {
@@ -188,5 +193,6 @@ export function useDrillSession() {
         startTraining,
         submitAnswer,
         stopTraining,
+        goToNextHand,
     }
 }

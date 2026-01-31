@@ -34,6 +34,7 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
     startTraining,
     submitAnswer,
     stopTraining,
+    goToNextHand,
   } = useDrillSession()
 
   // Actions to display based on current range or demo
@@ -147,6 +148,7 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
           show={showResult}
           correct={lastAnswer?.correct || false}
           correctAction={currentHand.correctAction}
+          onNext={goToNextHand}
         />
       </div>
 
