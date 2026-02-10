@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import type { LibraryNode, LibraryNodeType } from '@/types/library'
 import { LIBRARY_STORAGE_KEY } from '@/types/library'
 
@@ -25,6 +25,13 @@ export function useLibrary() {
 
     // Clipboard for copy/paste functionality
     const [clipboard, setClipboard] = useState<LibraryNode | null>(null)
+
+    // Callback to duplicate range data when cloning/pasting chart nodes
+    const duplicateRangeRef = useRef<((oldRangeId: string, newRangeId: string) => void) | null>(null)
+
+    const setDuplicateRangeCallback = useCallback((cb: (oldRangeId: string, newRangeId: string) => void) => {
+        duplicateRangeRef.current = cb
+    }, [])
 
     // Persist to localStorage whenever nodes change
     useEffect(() => {
@@ -267,14 +274,23 @@ export function useLibrary() {
     }, [clipboard, findNodeById])
 
     /**
-     * Deep regenerate IDs for a node and all its children
+     * Deep regenerate IDs for a node and all its children.
+     * Also duplicates range data for chart nodes via the registered callback.
      */
     const regenerateIds = (node: LibraryNode): LibraryNode => {
         const newId = `${node.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        let newRangeId = node.rangeId
+        if (node.type === 'chart') {
+            newRangeId = `range-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+            // Duplicate the range data from oldRangeId → newRangeId
+            if (node.rangeId && newRangeId && duplicateRangeRef.current) {
+                duplicateRangeRef.current(node.rangeId, newRangeId)
+            }
+        }
         return {
             ...node,
             id: newId,
-            rangeId: node.type === 'chart' ? `range-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` : node.rangeId,
+            rangeId: newRangeId,
             children: node.children?.map(child => regenerateIds(child))
         }
     }
@@ -367,7 +383,8 @@ export function useLibrary() {
         copyNode,
         pasteNode,
         cloneNode,
-        canPaste
+        canPaste,
+        setDuplicateRangeCallback
     }
 }
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import './App.css'
 import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
@@ -30,6 +30,11 @@ function App() {
   // Use the library hook at App level to share state
   const library = useLibrary()
   const rangesManager = useRanges()
+
+  // Register the range duplication callback so library clone/paste copies range data
+  useEffect(() => {
+    library.setDuplicateRangeCallback(rangesManager.duplicateRange)
+  }, [library.setDuplicateRangeCallback, rangesManager.duplicateRange])
 
   /**
    * Helper to get or create a default range

@@ -10,6 +10,8 @@ export interface TrainingHand {
     position: string
     stackSize: string
     situation: string
+    rangeId?: string // Track which range this hand belongs to
+    rangeName?: string
 }
 
 export const DEMO_SCENARIOS: TrainingHand[] = [
@@ -47,13 +49,28 @@ const generateScenarios = (range: Range, folderName?: string): TrainingHand[] =>
                     actionColor: color,
                     position: range.name,
                     stackSize: context.stack,
-                    situation: context.situation
+                    situation: context.situation,
+                    rangeId: range.id,
+                    rangeName: range.name
                 })
             }
         })
     }
 
-    return scenarios.length > 0 ? scenarios : DEMO_SCENARIOS
+    return scenarios
+}
+
+// Generate scenarios from multiple ranges
+const generateMultiRangeScenarios = (ranges: Range[], folderNames?: string[]): TrainingHand[] => {
+    const allScenarios: TrainingHand[] = []
+
+    ranges.forEach((range, index) => {
+        const folderName = folderNames?.[index]
+        const scenarios = generateScenarios(range, folderName)
+        allScenarios.push(...scenarios)
+    })
+
+    return allScenarios
 }
 
 // Fisher-Yates shuffle
@@ -91,6 +108,7 @@ const getRandomSuitColors = (hand: string) => {
 
 export function useDrillSession() {
     const [isTraining, setIsTraining] = useState(false)
+    const [sessionComplete, setSessionComplete] = useState(false)
     const [currentHandIndex, setCurrentHandIndex] = useState(0)
     const [score, setScore] = useState(0)
     const [showResult, setShowResult] = useState(false)
@@ -98,6 +116,7 @@ export function useDrillSession() {
     const [trainingHistory, setTrainingHistory] = useState<Array<{ hand: string; correct: boolean; action: string }>>([])
     const [activeScenarios, setActiveScenarios] = useState<TrainingHand[]>(DEMO_SCENARIOS)
     const [currentRange, setCurrentRange] = useState<Range | null>(null)
+    const [currentRanges, setCurrentRanges] = useState<Range[]>([])
     // Store full suit objects now
     const [currentCardColors, setCurrentCardColors] = useState<any[]>(getRandomSuitColors(DEMO_SCENARIOS[0].hand))
 
@@ -107,23 +126,62 @@ export function useDrillSession() {
     const progress = ((currentHandIndex) / activeScenarios.length) * 100
     const accuracy = currentHandIndex > 0 ? Math.round((score / currentHandIndex) * 100) : 100
 
-    const startTraining = (range?: Range, folderName?: string) => {
-        if (range) {
-            setCurrentRange(range)
-            let scenarios = generateScenarios(range, folderName)
+    const startTraining = (ranges?: Range[], folderNames?: string[]) => {
+        setSessionComplete(false)
 
-            // SRS Sorting Logic
-            const dueHands = getDueHands(range.id)
-            const dueScenarios = scenarios.filter(s => dueHands.includes(s.hand))
-            const newScenarios = scenarios.filter(s => !dueHands.includes(s.hand))
+        if (ranges && ranges.length > 0) {
+            // Store all ranges for reference
+            setCurrentRanges(ranges)
+            setCurrentRange(ranges[0]) // Set first range as current for action colors
 
-            // Shuffle both independently so due cards are random among themselves, but always come first
-            scenarios = [...shuffleStats(dueScenarios), ...shuffleStats(newScenarios)]
+            let scenarios: TrainingHand[]
 
-            setActiveScenarios(scenarios)
-            setCurrentCardColors(getRandomSuitColors(scenarios[0].hand))
+            if (ranges.length === 1) {
+                // Single range training
+                scenarios = generateScenarios(ranges[0], folderNames?.[0])
+
+                // SRS Sorting Logic
+                const dueHands = getDueHands(ranges[0].id)
+                const dueScenarios = scenarios.filter(s => dueHands.includes(s.hand))
+                const newScenarios = scenarios.filter(s => !dueHands.includes(s.hand))
+
+                // Shuffle both independently so due cards are random among themselves, but always come first
+                scenarios = [...shuffleStats(dueScenarios), ...shuffleStats(newScenarios)]
+            } else {
+                // Multi-range training
+                scenarios = generateMultiRangeScenarios(ranges, folderNames)
+
+                // For multi-range, apply SRS per range then combine
+                const allDueScenarios: TrainingHand[] = []
+                const allNewScenarios: TrainingHand[] = []
+
+                ranges.forEach(range => {
+                    const rangeScenarios = scenarios.filter(s => s.rangeId === range.id)
+                    const dueHands = getDueHands(range.id)
+
+                    rangeScenarios.forEach(s => {
+                        if (dueHands.includes(s.hand)) {
+                            allDueScenarios.push(s)
+                        } else {
+                            allNewScenarios.push(s)
+                        }
+                    })
+                })
+
+                // Shuffle and combine
+                scenarios = [...shuffleStats(allDueScenarios), ...shuffleStats(allNewScenarios)]
+            }
+
+            if (scenarios.length > 0) {
+                setActiveScenarios(scenarios)
+                setCurrentCardColors(getRandomSuitColors(scenarios[0].hand))
+            } else {
+                setActiveScenarios(DEMO_SCENARIOS)
+                setCurrentCardColors(getRandomSuitColors(DEMO_SCENARIOS[0].hand))
+            }
         } else {
             setCurrentRange(null)
+            setCurrentRanges([])
             setActiveScenarios(DEMO_SCENARIOS)
             setCurrentCardColors(getRandomSuitColors(DEMO_SCENARIOS[0].hand))
         }
@@ -145,11 +203,12 @@ export function useDrillSession() {
         setTrainingHistory(prev => [...prev, { hand: currentHand.hand, correct: isCorrect, action }])
         setShowResult(true)
 
-        // Update SRS Stats
-        if (currentRange) {
-            const currentStats = getCardStats(currentRange.id, currentHand.hand)
+        // Update SRS Stats - use the hand's own rangeId for multi-range support
+        const rangeId = currentHand.rangeId || currentRange?.id
+        if (rangeId) {
+            const currentStats = getCardStats(rangeId, currentHand.hand)
             const newStats = calculateNewSRSState(currentStats, isCorrect)
-            updateCardStats(currentRange.id, currentHand.hand, newStats)
+            updateCardStats(rangeId, currentHand.hand, newStats)
         }
 
         // Auto-advance only when correct
@@ -169,16 +228,29 @@ export function useDrillSession() {
             setShowResult(false)
             setLastAnswer(null)
         } else {
+            // Session complete - show summary
+            setSessionComplete(true)
             setIsTraining(false)
         }
     }
 
     const stopTraining = () => {
         setIsTraining(false)
+        setSessionComplete(false)
+    }
+
+    const restartTraining = () => {
+        // Restart with the same ranges
+        if (currentRanges.length > 0) {
+            startTraining(currentRanges)
+        } else {
+            startTraining()
+        }
     }
 
     return {
         isTraining,
+        sessionComplete,
         currentHand,
         currentHandIndex,
         score,
@@ -189,10 +261,12 @@ export function useDrillSession() {
         trainingHistory,
         activeScenarios,
         currentRange,
+        currentRanges,
         currentCardColors,
         startTraining,
         submitAnswer,
         stopTraining,
         goToNextHand,
+        restartTraining,
     }
 }

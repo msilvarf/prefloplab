@@ -8,6 +8,7 @@ import { ActionButtons } from '@/components/treinador/ActionButtons'
 import { ReferenceRange } from '@/components/treinador/ReferenceRange'
 import { ResultFeedback } from '@/components/treinador/ResultFeedback'
 import { RangeTrainingView } from '@/components/treinador/RangeTrainingView'
+import { SessionSummary } from '@/components/treinador/SessionSummary'
 
 interface TreinadorViewProps {
   folders: Folder[]
@@ -20,6 +21,7 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
 
   const {
     isTraining,
+    sessionComplete,
     currentHand,
     currentHandIndex,
     score,
@@ -30,27 +32,50 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
     trainingHistory,
     activeScenarios,
     currentRange,
+    currentRanges,
     currentCardColors,
     startTraining,
     submitAnswer,
     stopTraining,
     goToNextHand,
+    restartTraining,
   } = useDrillSession()
 
   // Actions to display based on current range or demo
-  const actionsToDisplay = currentRange
-    ? currentRange.actions.map(a => ({ name: a.name, color: a.color }))
-    : [
-      { name: 'Fold', color: '#6b7280' },
-      { name: 'Raise/shove/call', color: '#3b82f6' },
-      { name: 'Open shove', color: '#22c55e' },
-      { name: 'Limp/fold', color: '#eab308' },
-      { name: 'Raise/call/fold', color: '#8b5cf6' },
-      { name: 'Raise/fold', color: '#ef4444' },
-      { name: 'Limp/call/call', color: '#6b7280' },
-      { name: 'Limp/call/fold', color: '#d97706' },
-      { name: 'Raise/call/call', color: '#06b6d4' },
-    ]
+  // For multi-range, combine all unique actions
+  const actionsToDisplay = (() => {
+    if (currentRanges.length > 1) {
+      // Multi-range: collect unique actions from all ranges
+      const seenActions = new Set<string>()
+      const actions: { name: string; color: string }[] = []
+
+      currentRanges.forEach(range => {
+        range.actions.forEach(a => {
+          const key = `${a.name}:${a.color}`
+          if (!seenActions.has(key)) {
+            seenActions.add(key)
+            actions.push({ name: a.name, color: a.color })
+          }
+        })
+      })
+
+      return actions
+    } else if (currentRange) {
+      return currentRange.actions.map(a => ({ name: a.name, color: a.color }))
+    } else {
+      return [
+        { name: 'Fold', color: '#6b7280' },
+        { name: 'Raise/shove/call', color: '#3b82f6' },
+        { name: 'Open shove', color: '#22c55e' },
+        { name: 'Limp/fold', color: '#eab308' },
+        { name: 'Raise/call/fold', color: '#8b5cf6' },
+        { name: 'Raise/fold', color: '#ef4444' },
+        { name: 'Limp/call/call', color: '#6b7280' },
+        { name: 'Limp/call/fold', color: '#d97706' },
+        { name: 'Raise/call/call', color: '#06b6d4' },
+      ]
+    }
+  })()
 
   // Show reference range ONLY if result is shown AND answer was incorrect
   const showReferenceRange = !!(showResult && lastAnswer && !lastAnswer.correct)
@@ -74,6 +99,19 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
         range={rangeTrainingData.range}
         folderName={rangeTrainingData.folderName}
         onBack={handleBackFromRangeTraining}
+      />
+    )
+  }
+
+  // If session is complete, show summary
+  if (sessionComplete) {
+    return (
+      <SessionSummary
+        history={trainingHistory}
+        score={score}
+        totalAnswered={trainingHistory.length}
+        onRestart={restartTraining}
+        onHome={stopTraining}
       />
     )
   }
@@ -123,6 +161,14 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
             </span>
             <span className="text-muted-foreground">•</span>
             <span className="text-muted-foreground">{currentHand.situation}</span>
+            {currentRanges.length > 1 && currentHand.rangeName && (
+              <>
+                <span className="text-muted-foreground">•</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-400">
+                  {currentHand.rangeName}
+                </span>
+              </>
+            )}
           </div>
         </div>
 

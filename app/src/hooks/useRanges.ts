@@ -43,10 +43,29 @@ export function useRanges() {
         })
     }, [])
 
+    /**
+     * Duplicate range data from oldId to newId (deep copy).
+     * Used when cloning/pasting chart nodes in the library.
+     */
+    const duplicateRange = useCallback((oldId: string, newId: string) => {
+        setRanges(prev => {
+            const source = prev[oldId]
+            if (!source) return prev // No data to copy
+            // Deep clone the range data and assign the new id
+            const cloned = JSON.parse(JSON.stringify(source))
+            cloned.id = newId
+            return {
+                ...prev,
+                [newId]: cloned
+            }
+        })
+    }, [])
+
     return {
         ranges,
         getRange,
         saveRange,
-        deleteRange
+        deleteRange,
+        duplicateRange
     }
 }
