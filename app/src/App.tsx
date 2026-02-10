@@ -70,8 +70,8 @@ function App() {
    * Handle chart selection from sidebar
    */
   const handleSelectChart = (node: LibraryNode) => {
-    // If it's a chart, also prepare the Range object
-    if (node.type === 'chart') {
+    // If it's a chart or a stack (acting as chart), prepare the Range object
+    if (node.type === 'chart' || (node.type === 'stack' && node.rangeId)) {
       const range = getOrCreateRange(node)
       setSelectedRange(range)
     }
@@ -81,7 +81,7 @@ function App() {
    * Open chart in editor
    */
   const handleOpenInEditor = (node: LibraryNode) => {
-    if (node.type === 'chart') {
+    if (node.type === 'chart' || (node.type === 'stack' && node.rangeId)) {
       const range = getOrCreateRange(node)
       setSelectedRange(range)
       setActiveTab('editor')
@@ -96,15 +96,27 @@ function App() {
     const folders: Folder[] = []
 
     const processNode = (node: LibraryNode, path: string[]) => {
-      if (node.type === 'stack') {
-        // Create a folder for this Stack
+      // Compatibility with old structure: Stack -> [Charts]
+      if (node.type === 'stack' && node.children && node.children.some(c => c.type === 'chart')) {
         const folderName = [...path, node.title].join(' / ')
+        const chartNodes = node.children.filter(c => c.type === 'chart')
 
-        // Find chart children
-        const chartNodes = node.children?.filter(c => c.type === 'chart') || []
+        const folderRanges = chartNodes.map(chartNode => getOrCreateRange(chartNode))
+        folders.push({
+          id: node.id,
+          name: folderName,
+          isOpen: false,
+          ranges: folderRanges
+        })
+      }
+      // New structure: Scenario -> [Stacks (acting as charts)]
+      else if (node.type === 'scenario') {
+        // Check if this scenario has STACK children that act as ranges (have rangeId)
+        const stackRanges = node.children?.filter(c => c.type === 'stack' && c.rangeId) || []
 
-        if (chartNodes.length > 0) {
-          const folderRanges = chartNodes.map(chartNode => getOrCreateRange(chartNode))
+        if (stackRanges.length > 0) {
+          const folderName = [...path, node.title].join(' / ')
+          const folderRanges = stackRanges.map(stackNode => getOrCreateRange(stackNode))
 
           folders.push({
             id: node.id,
@@ -113,10 +125,16 @@ function App() {
             ranges: folderRanges
           })
         }
-      } else if (node.children) {
+
+        // Continue traversing anyway, in case nested structure
+        if (node.children) {
+          const newPath = [...path, node.title]
+          node.children.forEach(child => processNode(child, newPath))
+        }
+      }
+      else if (node.children) {
         // Continue traversing
-        // Don't include format/scenario names in path if desire cleaner UI, but usually helpful context
-        const newPath = node.type === 'format' || node.type === 'scenario'
+        const newPath = node.type === 'format'
           ? [...path, node.title]
           : path
 

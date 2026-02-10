@@ -26,6 +26,11 @@ export function VisualizadorView({ range: externalRange, library, getRange }: Vi
 
   const activeRange = useMemo(() => {
     if (selectedStack) {
+      // New structure: Stack is the range
+      if (selectedStack.rangeId) {
+        return getRange(selectedStack)
+      }
+      // Legacy structure: Stack has chart child
       const chartNode = selectedStack.children?.find(c => c.type === 'chart')
       if (chartNode) return getRange(chartNode)
     }

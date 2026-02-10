@@ -38,7 +38,7 @@ export function TreeNode({
     const isExpanded = library.expandedIds.has(node.id)
     const isSelected = library.selectedId === node.id
     const hasChildren = node.children && node.children.length > 0
-    const isChart = node.type === 'chart'
+    const isChart = node.type === 'chart' || (node.type === 'stack' && !!node.rangeId)
     const childType = getAllowedChildType(node.type)
     const addLabel = getAddChildLabel(node.type)
 

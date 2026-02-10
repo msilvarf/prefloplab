@@ -1,6 +1,6 @@
 import type { LibraryNode } from '@/types/library'
 import { getNodeTypeLabel, getAllowedChildType, getAddChildLabel } from '@/types/library'
-import { Gamepad2, Users, Coins, Grid3X3, ArrowRight, Sparkles, Edit3 } from 'lucide-react'
+import { Gamepad2, Users, Grid3X3, ArrowRight, Sparkles, Edit3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -20,7 +20,7 @@ function getNodeIcon(type: LibraryNode['type']) {
     case 'scenario':
       return <Users className={cn(iconClass, "text-blue-400")} />
     case 'stack':
-      return <Coins className={cn(iconClass, "text-amber-400")} />
+      return <Grid3X3 className={cn(iconClass, "text-emerald-400")} />
     case 'chart':
       return <Grid3X3 className={cn(iconClass, "text-emerald-400")} />
   }
@@ -36,7 +36,7 @@ function getNodeGradient(type: LibraryNode['type']): string {
     case 'scenario':
       return 'from-blue-500/20 to-cyan-500/10'
     case 'stack':
-      return 'from-amber-500/20 to-orange-500/10'
+      return 'from-emerald-500/20 to-teal-500/10'
     case 'chart':
       return 'from-emerald-500/20 to-teal-500/10'
   }
@@ -71,13 +71,8 @@ export function BibliotecaView({ selectedNode, onOpenInEditor }: BibliotecaViewP
             </div>
             <ArrowRight className="w-5 h-5 text-muted-foreground" />
             <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-500/5 border border-amber-500/20">
-              <Coins className="w-4 h-4 text-amber-400" />
-              <span className="text-amber-300 font-medium">Stack</span>
-            </div>
-            <ArrowRight className="w-5 h-5 text-muted-foreground" />
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20">
               <Grid3X3 className="w-4 h-4 text-emerald-400" />
-              <span className="text-emerald-300 font-medium">Chart</span>
+              <span className="text-emerald-300 font-medium">Stack (Range)</span>
             </div>
           </div>
 
@@ -125,7 +120,7 @@ export function BibliotecaView({ selectedNode, onOpenInEditor }: BibliotecaViewP
       </div>
 
       {/* Chart action */}
-      {selectedNode.type === 'chart' && (
+      {(selectedNode.type === 'chart' || selectedNode.type === 'stack') && (
         <div className="glass rounded-2xl p-6 mb-6 card-hover">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 flex items-center justify-center">
@@ -134,7 +129,7 @@ export function BibliotecaView({ selectedNode, onOpenInEditor }: BibliotecaViewP
             <div className="flex-1">
               <h3 className="font-semibold text-lg mb-1">Editar Range</h3>
               <p className="text-sm text-muted-foreground">
-                Abra este chart no Editor para configurar as ações e mãos.
+                Abra este stack no Editor para configurar as ações e mãos.
               </p>
             </div>
             <Button
@@ -148,8 +143,8 @@ export function BibliotecaView({ selectedNode, onOpenInEditor }: BibliotecaViewP
         </div>
       )}
 
-      {/* Children info (for non-chart nodes) */}
-      {selectedNode.type !== 'chart' && (
+      {/* Children info (for non-chart/stack nodes) */}
+      {(selectedNode.type !== 'chart' && selectedNode.type !== 'stack') && (
         <div className="space-y-4">
           <div className="glass rounded-2xl p-6">
             <div className="flex items-center gap-4">

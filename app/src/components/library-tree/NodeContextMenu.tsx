@@ -40,6 +40,8 @@ export function NodeContextMenu({
     const childType = getAllowedChildType(node.type)
     const addLabel = getAddChildLabel(node.type)
     const isChart = node.type === 'chart'
+    const isStack = node.type === 'stack'
+    const isRangeNode = isChart || isStack
 
     // Close when clicking outside
     useEffect(() => {
@@ -93,8 +95,8 @@ export function NodeContextMenu({
                 </button>
             )}
 
-            {/* Treinar Range (apenas para charts) */}
-            {isChart && onTrain && (
+            {/* Treinar Range (apenas para charts/stacks) */}
+            {isRangeNode && onTrain && (
                 <button
                     onClick={() => {
                         onTrain(node)
@@ -119,7 +121,7 @@ export function NodeContextMenu({
                     className="w-full px-3 py-2 text-sm text-left hover:bg-white/5 flex items-center gap-3 transition-colors"
                 >
                     <Copy className="w-4 h-4 text-blue-400" />
-                    Clonar {isChart ? 'range' : node.type === 'stack' ? 'stack' : node.type === 'scenario' ? 'cenário' : 'formato'}
+                    Clonar {isChart ? 'range' : isStack ? 'stack' : node.type === 'scenario' ? 'cenário' : 'formato'}
                 </button>
             )}
 
@@ -133,12 +135,12 @@ export function NodeContextMenu({
                     className="w-full px-3 py-2 text-sm text-left hover:bg-white/5 flex items-center gap-3 transition-colors"
                 >
                     <Clipboard className="w-4 h-4 text-cyan-400" />
-                    Copiar {isChart ? 'range' : node.type === 'stack' ? 'stack' : node.type === 'scenario' ? 'cenário' : 'formato'}
+                    Copiar {isChart ? 'range' : isStack ? 'stack' : node.type === 'scenario' ? 'cenário' : 'formato'}
                 </button>
             )}
 
             {/* Colar */}
-            {onPaste && !isChart && (
+            {onPaste && !isRangeNode && (
                 <button
                     onClick={() => {
                         if (canPaste) {
@@ -208,7 +210,7 @@ export function NodeContextMenu({
                 className="w-full px-3 py-2 text-sm text-left hover:bg-red-500/10 flex items-center gap-3 text-red-400 transition-colors"
             >
                 <Trash2 className="w-4 h-4" />
-                Apagar {isChart ? 'range' : node.type === 'stack' ? 'stack' : node.type === 'scenario' ? 'cenário' : 'formato'}
+                Apagar {isChart ? 'range' : isStack ? 'stack' : node.type === 'scenario' ? 'cenário' : 'formato'}
             </button>
         </div>
     )

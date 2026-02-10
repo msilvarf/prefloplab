@@ -1,4 +1,4 @@
-import { Gamepad2, Users, Coins, Grid3X3 } from 'lucide-react'
+import { Gamepad2, Users, Grid3X3 } from 'lucide-react'
 import type { LibraryNodeType } from '@/types/library'
 import { cn } from '@/lib/utils'
 
@@ -19,7 +19,7 @@ export function NodeIcon({ type, className }: NodeIconProps) {
         case 'scenario':
             return <Users className={iconClass} />
         case 'stack':
-            return <Coins className={iconClass} />
+            return <Grid3X3 className={iconClass} />
         case 'chart':
             return <Grid3X3 className={iconClass} />
     }
@@ -35,7 +35,7 @@ export function getNodeColor(type: LibraryNodeType): string {
         case 'scenario':
             return 'text-blue-400'
         case 'stack':
-            return 'text-amber-400'
+            return 'text-emerald-400'
         case 'chart':
             return 'text-emerald-400'
     }
@@ -51,7 +51,7 @@ export function getNodeBgGradient(type: LibraryNodeType): string {
         case 'scenario':
             return 'from-blue-500/10 to-transparent'
         case 'stack':
-            return 'from-amber-500/10 to-transparent'
+            return 'from-emerald-500/10 to-transparent'
         case 'chart':
             return 'from-emerald-500/10 to-transparent'
     }

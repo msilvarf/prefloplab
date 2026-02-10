@@ -1,15 +1,14 @@
 /**
  * PreflopLab Library System
  * 
- * Strict Hierarchy: Format → Scenario → Stack → Chart
+ * Strict Hierarchy: Format → Scenario → Stack
  * 
  * - Format: game format (Spin, Heads-Up, 6-Max, Cash)
  * - Scenario: position + action (e.g. SB vs Limp, BB vs SB Open)
- * - Stack: effective stack size (e.g. 25bb, 20bb, 15bb)
- * - Chart: a single preflop range for editing or drilling
+ * - Stack: effective stack size (e.g. 25bb) - NOW CONTAINS THE RANGE
  */
 
-export type LibraryNodeType = 'format' | 'scenario' | 'stack' | 'chart'
+export type LibraryNodeType = 'format' | 'scenario' | 'stack' | 'chart' // keeping chart for types safety but removing from hierarchy
 
 /**
  * Unified tree node interface for the library hierarchy.
@@ -21,7 +20,7 @@ export interface LibraryNode {
     type: LibraryNodeType
     children?: LibraryNode[]
     createdAt: string
-    /** Only present on chart nodes - links to the Range data */
+    /** Present on stack/chart nodes - links to the Range data */
     rangeId?: string
 }
 
@@ -30,8 +29,7 @@ export interface LibraryNode {
  * 
  * format → scenario
  * scenario → stack
- * stack → chart
- * chart → (none, leaf node)
+ * stack → (none, leaf node)
  */
 export function getAllowedChildType(parentType: LibraryNodeType): LibraryNodeType | null {
     switch (parentType) {
@@ -40,14 +38,14 @@ export function getAllowedChildType(parentType: LibraryNodeType): LibraryNodeTyp
         case 'scenario':
             return 'stack'
         case 'stack':
-            return 'chart'
+            return null // Stacks are now leaf nodes
         case 'chart':
-            return null // Charts are leaf nodes
+            return null
     }
 }
 
 /**
- * Returns a human-readable label for adding a child (Portuguese).
+ * Returns the human-readable label for adding a child.
  */
 export function getAddChildLabel(parentType: LibraryNodeType): string | null {
     switch (parentType) {
@@ -56,7 +54,7 @@ export function getAddChildLabel(parentType: LibraryNodeType): string | null {
         case 'scenario':
             return 'Adicionar Stack'
         case 'stack':
-            return 'Adicionar Chart'
+            return null
         case 'chart':
             return null
     }
@@ -72,7 +70,7 @@ export function getNodePlaceholder(type: LibraryNodeType): string {
         case 'scenario':
             return 'Ex: SB Open, BB vs SB Open, UTG Open'
         case 'stack':
-            return 'Ex: 25bb, 20bb, 15bb, 100bb'
+            return 'Ex: 25bb, 20bb, 15bb, 100bb (Setup do Range)'
         case 'chart':
             return 'Ex: Raise, Call, 3-Bet, All-In'
     }

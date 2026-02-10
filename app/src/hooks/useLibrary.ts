@@ -120,8 +120,8 @@ export function useLibrary() {
             title,
             type: childType,
             createdAt: new Date().toISOString(),
-            children: childType !== 'chart' ? [] : undefined,
-            rangeId: childType === 'chart' ? `range-${Date.now()}` : undefined
+            children: (childType !== 'chart' && childType !== 'stack') ? [] : undefined,
+            rangeId: (childType === 'chart' || childType === 'stack') ? `range-${Date.now()}` : undefined
         }
 
         const addToParent = (nodeList: LibraryNode[]): LibraryNode[] => {
@@ -267,8 +267,7 @@ export function useLibrary() {
         // Check if parent can have children of clipboard's type
         const allowedChildType =
             parent.type === 'format' ? 'scenario' :
-                parent.type === 'scenario' ? 'stack' :
-                    parent.type === 'stack' ? 'chart' : null
+                parent.type === 'scenario' ? 'stack' : null
 
         return clipboard.type === allowedChildType
     }, [clipboard, findNodeById])
@@ -280,11 +279,21 @@ export function useLibrary() {
     const regenerateIds = (node: LibraryNode): LibraryNode => {
         const newId = `${node.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         let newRangeId = node.rangeId
-        if (node.type === 'chart') {
-            newRangeId = `range-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-            // Duplicate the range data from oldRangeId → newRangeId
-            if (node.rangeId && newRangeId && duplicateRangeRef.current) {
-                duplicateRangeRef.current(node.rangeId, newRangeId)
+        if (node.type === 'chart' || node.type === 'stack') {
+            // Only generate new rangeId if the node already had one (stacks might not have rangeId if created in old version)
+            // But for new stacks acting as charts, they should have rangeId.
+            // If cloning an old stack (without rangeId), we don't add one here unless we migrate logic.
+            // Let's assume if it has rangeId or is type stack/chart, we want a fresh start.
+
+            // Generate new rangeId mainly if it's a chart OR if it's a stack that already acts as a chart (has rangeId)
+            // OR if we are converting a stack to have a range? No, let's respect existing data.
+            if (node.rangeId || node.type === 'stack' || node.type === 'chart') {
+                newRangeId = `range-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+                // Duplicate the range data from oldRangeId → newRangeId
+                if (node.rangeId && newRangeId && duplicateRangeRef.current) {
+                    duplicateRangeRef.current(node.rangeId, newRangeId)
+                }
             }
         }
         return {
