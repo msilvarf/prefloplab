@@ -155,20 +155,24 @@ export function TreinadorView({ folders }: TreinadorViewProps) {
             />
           </div>
           {/* Context info */}
-          <div className="flex items-center justify-center gap-3 mt-4 text-sm scale-95 origin-top">
-            <span className="px-3 py-1 rounded-full bg-white/5 text-muted-foreground">
-              <span className="font-bold text-foreground">{currentHand.stackSize}</span>
-            </span>
-            <span className="text-muted-foreground">•</span>
-            <span className="text-muted-foreground">{currentHand.situation}</span>
-            {currentRanges.length > 1 && currentHand.rangeName && (
-              <>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-400">
-                  {currentHand.rangeName}
+          {/* Context info */}
+          <div className="flex flex-col items-center justify-center gap-1 mt-6 animate-in fade-in slide-in-from-top-4 duration-500">
+            {/* Stack Size Display */}
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 to-purple-600 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
+              <div className="relative">
+                <span className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/80 drop-shadow-sm select-none">
+                  {currentHand.stackSize}
                 </span>
-              </>
-            )}
+              </div>
+            </div>
+
+            {/* Scenario & Format Info */}
+            <div className="mt-2 px-6 py-2 rounded-full bg-black/20 border border-white/5 backdrop-blur-sm hover:bg-black/30 transition-colors">
+              <span className="font-semibold text-white/80 tracking-wide uppercase text-sm md:text-base">
+                {currentHand.situation}
+              </span>
+            </div>
           </div>
         </div>
 

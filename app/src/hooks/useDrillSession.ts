@@ -38,6 +38,11 @@ const generateScenarios = (range: Range, folderName?: string): TrainingHand[] =>
 
     const context = folderName ? parseFolderContext(folderName) : { stack: '', situation: range.name }
 
+    // If stack was not found in folderName (e.g. only 2 levels Format/Scenario), use range name as stack
+    if (!context.stack && folderName) {
+        context.stack = range.name
+    }
+
     if (range.hands) {
         Object.entries(range.hands).forEach(([hand, color]) => {
             const action = range.actions.find(a => a.color === color)
